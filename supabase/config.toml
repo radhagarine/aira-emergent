@@ -1,0 +1,23 @@
+# Project configuration
+project_id = "your-project-id"
+
+[api]
+# Port number for the API Gateway
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+# Port number for the database
+port = 54322
+shadow_port = 54320
+
+[studio]
+# Port number for the Supabase Studio
+port = 54323
+
+[inbucket]
+# Port number for the email testing server
+smtp_port = 54324
+pop3_port = 54325

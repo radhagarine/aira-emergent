@@ -1,0 +1,63 @@
+@keyframes waveAnimation {
+  0% {
+    transform: scaleY(0.2);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+.animate-sound-wave {
+  animation: sound-wave 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(0.95);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulseMic {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-mic {
+  animation: pulseMic 2s ease-in-out infinite;
+}
+
+@keyframes pulseCircles {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.1;
+  }
+}
+
+.animate-pulse-circles {
+  animation: pulseCircles 4s ease-in-out infinite;
+}
+
+.animate-pulse-circles-delayed {
+  animation: pulseCircles 4s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
