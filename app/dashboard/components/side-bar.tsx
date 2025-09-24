@@ -18,7 +18,7 @@ import { SidebarVideoLogo } from '@/components/ui/video-logo'
 const navItems = [
   { name: 'Overview', href: '/dashboard/overview', icon: LayoutDashboard },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
-  { name: 'Details', href: '/dashboard/details_new', icon: Building2 },
+  { name: 'Details', href: '/dashboard/details', icon: Building2 },
   { name: 'Numbers', href: '/dashboard/numbers', icon: Phone },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart },
   { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
