@@ -132,7 +132,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     }
     
     // Fallback
-    return 'http://localhost:3000/auth/callback';
+    return 'https://aira.aivn.ai/auth/callback';
   };
 
   const signOut = async () => {
