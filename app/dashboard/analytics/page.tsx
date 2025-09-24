@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { DateRange } from "react-day-picker"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -28,6 +27,11 @@ import {
   Mic,
   CheckCircle
 } from 'lucide-react'
+
+interface DateRange {
+  from?: Date
+  to?: Date
+}
 
 export default function AnalyticsPage() {
   const [selectedBusiness, setSelectedBusiness] = useState("all")
