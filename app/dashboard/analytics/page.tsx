@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { DateRange } from "react-day-picker"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarDateRangePicker } from "@/components/dashboard/data-range-picker"
+import { DateRangeCalendar } from "@/components/ui/date-range-calendar"
 import { CallMetrics } from "@/components/dashboard/analytics/call-metrics"
 import { SuccessRate } from "@/components/dashboard/analytics/success-rate"
 import { PredictionChart } from "@/components/dashboard/analytics/prediction-chart"
@@ -31,7 +32,11 @@ import {
 export default function AnalyticsPage() {
   const [selectedBusiness, setSelectedBusiness] = useState("all")
   const [isGeneratingReport, setIsGeneratingReport] = useState(false)
-  const [dateRange, setDateRange] = useState("Jan 20, 2023 - Feb 09, 2023")
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(2023, 0, 20),
+    to: new Date(2023, 1, 9),
+  })
+
 
   // Mock data for KPI cards
   const kpiData = {
@@ -77,7 +82,11 @@ export default function AnalyticsPage() {
             </SelectContent>
           </Select>
 
-          <CalendarDateRangePicker className="w-full sm:w-[260px]" />
+          <DateRangeCalendar
+            value={dateRange}
+            onChange={setDateRange}
+            className="flex-shrink-0"
+          />
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2">

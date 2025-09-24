@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Mail, ArrowLeft, CheckCircle } from 'lucide-react'
 import { useSupabase } from '@/components/providers/supabase-provider'
-import { AiraLogoLight } from '@/components/ui/dashboard-aira-logo'
+import { AuthVideoLogo } from '@/components/ui/video-logo'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
           {/* Logo */}
           <div className="text-center space-y-2">
             <div className="flex justify-center">
-              <AiraLogoLight />
+              <AuthVideoLogo />
             </div>
           </div>
 
@@ -102,7 +102,7 @@ export default function ForgotPasswordPage() {
         {/* Logo */}
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <AiraLogoLight />
+            <AuthVideoLogo />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             Forgot Password

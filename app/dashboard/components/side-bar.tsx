@@ -13,7 +13,7 @@ import {
   Phone,
   Menu
 } from 'lucide-react'
-import { AiraLogoLight } from '@/components/ui/dashboard-aira-logo'
+import { SidebarVideoLogo } from '@/components/ui/video-logo'
 
 const navItems = [
   { name: 'Overview', href: '/dashboard/overview', icon: LayoutDashboard },
@@ -52,7 +52,7 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onToggle, isMobile = false }
       {/* Content wrapper */}
       <div className="relative h-full flex flex-col">
         {/* Header section */}
-        <div className="h-14 flex items-center px-4">
+        <div className="h-16 flex items-center px-4">
           {/* Menu toggle button */}
           <button
             onClick={onToggle}
@@ -63,8 +63,8 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onToggle, isMobile = false }
 
           {/* Logo section */}
           {(isOpen || isMobile) && (
-            <div className="flex-grow flex pl-6">
-              <AiraLogoLight />
+            <div className="flex-grow flex justify-start items-center pl-4">
+              <SidebarVideoLogo />
             </div>
           )}
         </div>

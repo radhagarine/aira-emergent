@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Loader2, LogIn, Mail, Lock, ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/components/providers/supabase-provider'
 import { useSupabase } from '@/components/providers/supabase-provider'
-import { AiraLogoLight } from '@/components/ui/dashboard-aira-logo'
+import { AuthVideoLogo } from '@/components/ui/video-logo'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -87,7 +87,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <AiraLogoLight />
+            <AuthVideoLogo />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             Welcome Back

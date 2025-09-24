@@ -43,87 +43,98 @@ const BusinessStatsCard: React.FC<BusinessStatsCardProps> = ({
   };
 
   return (
-    <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg">
+    <Card className="group relative overflow-hidden bg-card/95 backdrop-blur border-border/50 hover:border-red-800/20 dark:hover:border-red-400/20 transition-all duration-300 hover:shadow-lg rounded-lg">
       {/* Top gradient decoration */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-800 via-red-600 to-red-800" />
-      
-      <CardContent className="p-3 sm:p-4 relative">
-        {/* Header with image and name - mobile responsive */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:space-x-3 mb-4 space-y-2 sm:space-y-0">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center shadow-sm overflow-hidden border border-border mx-auto sm:mx-0">
-            {business.profile_image ? (
-              <img
-                src={business.profile_image}
-                alt={business.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-red-800 dark:text-red-400" />
-            )}
+
+      <CardContent className="p-4 relative">
+        {/* Header - More compact */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center shadow-sm overflow-hidden border border-red-200/50 dark:border-red-800/50">
+              {business.profile_image ? (
+                <img
+                  src={business.profile_image}
+                  alt={business.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Building2 className="h-5 w-5 text-red-800 dark:text-red-400" />
+              )}
+            </div>
+            {/* Online status indicator */}
+            <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border border-background shadow-sm">
+              <div className="w-full h-full rounded-full bg-green-500 animate-pulse"></div>
+            </div>
           </div>
 
-          <div className="flex-1 min-w-0 text-center sm:text-left">
-            <h3 className="text-base sm:text-lg font-semibold text-foreground truncate group-hover:text-red-800 dark:group-hover:text-red-400 transition-colors duration-300">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-bold text-foreground truncate group-hover:text-red-800 dark:group-hover:text-red-400 transition-colors duration-300">
               {business.name}
             </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground">{business.type}</p>
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200/50 dark:border-red-800/50">
+              {business.type}
+            </span>
           </div>
         </div>
 
-        {/* Statistics Grid - mobile responsive */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 max-w-md">
+        {/* Statistics Grid - Horizontal layout for better width usage */}
+        <div className="grid grid-cols-4 gap-2 mb-4">
           {/* Total Calls */}
-          <div className="p-1.5 sm:p-2 bg-secondary/50 dark:bg-secondary/30 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300 border border-border">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Phone className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              <span className="text-xs">Calls</span>
+          <div className="bg-background/50 border border-border/50 rounded p-2 hover:shadow-sm transition-all">
+            <div className="flex items-center gap-1 mb-1">
+              <Phone className="h-3 w-3 text-slate-600 dark:text-slate-400" />
+              <span className="text-xs text-muted-foreground">Calls</span>
             </div>
-            <p className="text-sm sm:text-lg font-semibold text-foreground mt-0.5">{business.totalCalls}</p>
+            <p className="text-sm font-bold text-foreground">{business.totalCalls}</p>
           </div>
 
           {/* Booked Percentage */}
-          <div className="p-1.5 sm:p-2 bg-secondary/50 dark:bg-secondary/30 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300 border border-border">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <BarChart className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              <span className="text-xs">Booked</span>
+          <div className="bg-background/50 border border-border/50 rounded p-2 hover:shadow-sm transition-all">
+            <div className="flex items-center gap-1 mb-1">
+              <BarChart className="h-3 w-3 text-green-600 dark:text-green-400" />
+              <span className="text-xs text-muted-foreground">Booked</span>
             </div>
-            <p className={`text-sm sm:text-lg font-semibold ${getPercentageColor(business.bookedPercentage)} mt-0.5`}>
+            <p className={`text-sm font-bold ${getPercentageColor(business.bookedPercentage)}`}>
               {business.bookedPercentage}%
             </p>
           </div>
 
           {/* Success Rate */}
-          <div className="p-1.5 sm:p-2 bg-secondary/50 dark:bg-secondary/30 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300 border border-border">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              <span className="text-xs">Success</span>
+          <div className="bg-background/50 border border-border/50 rounded p-2 hover:shadow-sm transition-all">
+            <div className="flex items-center gap-1 mb-1">
+              <CheckCircle className="h-3 w-3 text-green-600 dark:text-green-400" />
+              <span className="text-xs text-muted-foreground">Success</span>
             </div>
-            <p className={`text-sm sm:text-lg font-semibold ${getPercentageColor(business.successPercentage)} mt-0.5`}>
+            <p className={`text-sm font-bold ${getPercentageColor(business.successPercentage)}`}>
               {business.successPercentage}%
             </p>
           </div>
 
           {/* Failure Rate */}
-          <div className="p-1.5 sm:p-2 bg-secondary/50 dark:bg-secondary/30 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300 border border-border">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <XCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              <span className="text-xs">Failure</span>
+          <div className="bg-background/50 border border-border/50 rounded p-2 hover:shadow-sm transition-all">
+            <div className="flex items-center gap-1 mb-1">
+              <XCircle className="h-3 w-3 text-red-600 dark:text-red-400" />
+              <span className="text-xs text-muted-foreground">Failure</span>
             </div>
-            <p className={`text-sm sm:text-lg font-semibold ${getPercentageColor(100 - business.failurePercentage)} mt-0.5`}>
+            <p className="text-sm font-bold text-red-600 dark:text-red-400">
               {business.failurePercentage}%
             </p>
           </div>
         </div>
 
-        {/* View Details Button - mobile responsive */}
-        <div className="mt-3 sm:mt-4 text-center">
-          <button
-            onClick={handleViewDetails}
-            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-red-800 dark:text-red-400 hover:text-white bg-red-50 dark:bg-red-900/20 hover:bg-red-800 dark:hover:bg-red-600 rounded-lg transition-colors duration-300 inline-block border border-red-200 dark:border-red-700 w-full sm:w-auto"
-          >
+        {/* View Details Button - More compact */}
+        <button
+          onClick={handleViewDetails}
+          className="w-full bg-red-800 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500 text-white font-medium py-2 px-3 rounded transition-all duration-300 hover:shadow-md group/btn text-sm"
+        >
+          <span className="flex items-center justify-center gap-1">
             View Details
-          </button>
-        </div>
+            <svg className="w-3 h-3 transform group-hover/btn:translate-x-0.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </span>
+        </button>
       </CardContent>
     </Card>
   );
