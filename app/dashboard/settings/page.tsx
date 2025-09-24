@@ -15,6 +15,7 @@ import WebsiteSettingsForm from './components/WebsiteSettingsForm'
 import NotificationSettingsForm from './components/NotificationSettingsForm'
 import DisplaySettingsForm from './components/DisplaySettingsForm'
 import AdvancedSettingsForm from './components/AdvancedSettingsForm'
+import CrmIntegrationForm from './components/CrmIntegrationForm'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('website')
@@ -120,50 +121,39 @@ export default function SettingsPage() {
                 Website Settings
             </TabsTrigger>
             <TabsTrigger
-                value="interaction"
-                className="relative border-2 border-transparent bg-card dark:bg-card data-[state=active]:border-[#8B0000] dark:data-[state=active]:border-red-400 data-[state=active]:border-b-transparent data-[state=active]:text-[#8B0000] dark:data-[state=active]:text-red-400 px-3 py-2 sm:px-6 sm:py-2 text-foreground text-sm sm:text-base w-full sm:w-auto"
-            >
-                User Interaction
-            </TabsTrigger>
-            <TabsTrigger
-                value="preferences"
-                className="relative border-2 border-transparent bg-card dark:bg-card data-[state=active]:border-[#8B0000] dark:data-[state=active]:border-red-400 data-[state=active]:border-b-transparent data-[state=active]:text-[#8B0000] dark:data-[state=active]:text-red-400 px-3 py-2 sm:px-6 sm:py-2 text-foreground text-sm sm:text-base w-full sm:w-auto"
-            >
-                Display Preferences
-            </TabsTrigger>
-            <TabsTrigger
                 value="functionality"
                 className="relative border-2 border-transparent bg-card dark:bg-card data-[state=active]:border-[#8B0000] dark:data-[state=active]:border-red-400 data-[state=active]:border-b-transparent data-[state=active]:text-[#8B0000] dark:data-[state=active]:text-red-400 px-3 py-2 sm:px-6 sm:py-2 text-foreground text-sm sm:text-base w-full sm:w-auto"
             >
                 P2 Functionality
             </TabsTrigger>
+            <TabsTrigger
+                value="crm"
+                className="relative border-2 border-transparent bg-card dark:bg-card data-[state=active]:border-[#8B0000] dark:data-[state=active]:border-red-400 data-[state=active]:border-b-transparent data-[state=active]:text-[#8B0000] dark:data-[state=active]:text-red-400 px-3 py-2 sm:px-6 sm:py-2 text-foreground text-sm sm:text-base w-full sm:w-auto"
+            >
+                CRM Integration
+            </TabsTrigger>
         </TabsList>
 
         <TabsContent value="website" className="space-y-6">
-          <WebsiteSettingsForm 
+          <WebsiteSettingsForm
             settings={settings.websiteSettings}
+            notificationSettings={settings.notificationSettings}
+            displaySettings={settings.displaySettings}
             isLoading={loading || saving}
           />
         </TabsContent>
 
-        <TabsContent value="interaction" className="space-y-6">
-          <NotificationSettingsForm 
-            settings={settings.notificationSettings}
-            isLoading={loading || saving}
-          />
-        </TabsContent>
-
-        <TabsContent value="preferences" className="space-y-6">
-          <DisplaySettingsForm 
-            settings={settings.displaySettings}
-            isLoading={loading || saving}
-          />
-        </TabsContent>
 
         <TabsContent value="functionality" className="space-y-6">
-          <AdvancedSettingsForm 
+          <AdvancedSettingsForm
             settings={settings.advancedSettings}
             userId={user?.id || ''}
+            isLoading={loading || saving}
+          />
+        </TabsContent>
+
+        <TabsContent value="crm" className="space-y-6">
+          <CrmIntegrationForm
             isLoading={loading || saving}
           />
         </TabsContent>

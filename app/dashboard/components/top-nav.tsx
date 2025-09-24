@@ -3,7 +3,7 @@
 import { FC, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Bell, Settings, LogOut, ChevronRight, Home, Menu } from 'lucide-react'
+import { Bell, Settings, LogOut, ChevronRight, Home, Menu, Wallet } from 'lucide-react'
 import { User2 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/providers/supabase-provider'
@@ -104,6 +104,16 @@ export const TopNav: FC<TopNavProps> = ({ onMenuClick }) => {
               <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300 group-hover:text-red-800 dark:group-hover:text-red-400" />
               <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
             </button>
+
+            {/* Wallet Button */}
+            <Link href="/dashboard/funds" className="p-2 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-full transition-colors group">
+              <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300 group-hover:text-red-800 dark:group-hover:text-red-400" />
+            </Link>
+
+            {/* Settings Button */}
+            <Link href="/dashboard/settings" className="p-2 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-full transition-colors group">
+              <Settings className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300 group-hover:text-red-800 dark:group-hover:text-red-400" />
+            </Link>
 
             {/* Theme Toggle Button */}
             <ThemeToggle />
