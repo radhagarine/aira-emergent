@@ -10,12 +10,17 @@ export async function GET(request: Request) {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
 
-    // Use environment variable for site URL, fallback to request origin
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || requestUrl.origin
+    // Use environment variable for site URL with production fallback
+    const isProduction = process.env.NODE_ENV === 'production'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+                    (isProduction ? 'https://aira.aivn.ai' : requestUrl.origin)
 
     console.log('Auth callback - Request URL:', request.url)
     console.log('Auth callback - Request Origin:', requestUrl.origin)
-    console.log('Auth callback - Site URL:', siteUrl)
+    console.log('Auth callback - NODE_ENV:', process.env.NODE_ENV)
+    console.log('Auth callback - NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL)
+    console.log('Auth callback - Is Production:', isProduction)
+    console.log('Auth callback - Final Site URL:', siteUrl)
 
     if (code) {
       const cookieStore = cookies()
@@ -36,8 +41,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(homeUrl)
   } catch (error) {
     console.error('Auth callback error:', error)
-    // Use site URL for error redirect too
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin
+    // Use site URL for error redirect too with production fallback
+    const isProduction = process.env.NODE_ENV === 'production'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+                    (isProduction ? 'https://aira.aivn.ai' : new URL(request.url).origin)
     return NextResponse.redirect(new URL('/', siteUrl))
   }
 }
