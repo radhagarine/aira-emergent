@@ -7,8 +7,10 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
 
-  // Use environment variable for site URL, fallback to request URL
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin
+  // Use environment variable for site URL with production fallback
+  const isProduction = process.env.NODE_ENV === 'production'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+                  (isProduction ? 'https://aira.aivn.ai' : req.nextUrl.origin)
 
   try {
     const {
@@ -18,7 +20,10 @@ export async function middleware(req: NextRequest) {
 
     console.log('Middleware - Current path:', req.nextUrl.pathname)
     console.log('Middleware - Request origin:', req.nextUrl.origin)
-    console.log('Middleware - Site URL:', siteUrl)
+    console.log('Middleware - NODE_ENV:', process.env.NODE_ENV)
+    console.log('Middleware - NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL)
+    console.log('Middleware - Is Production:', isProduction)
+    console.log('Middleware - Final Site URL:', siteUrl)
     console.log('Middleware - Session exists:', !!session)
 
      // Check if cookies exist
