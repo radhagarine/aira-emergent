@@ -11,22 +11,9 @@ import {
   
   // Define types for settings
   export interface WebsiteSettings {
-    businessName?: string;
-    businessDescription?: string;
-    logo?: string;
-    websiteUrl?: string;
-    primaryPhone?: string;
-    businessEmail?: string;
-    businessAddress?: string;
-    businessHours?: string;
-    theme?: 'default' | 'dark' | 'light';
-    enableDarkMode?: boolean;
-    showLogo?: boolean;
-    enableSSL?: boolean;
-    enableAnalytics?: boolean;
-    analyticsId?: string;
-    enableCookieConsent?: boolean;
-    maintenanceMode?: boolean;
+    businessName: string;
+    theme: 'default' | 'dark' | 'light';
+    enableDarkMode: boolean;
   }
   
   export interface NotificationSettings {
