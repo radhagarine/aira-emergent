@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Mic, X, MessageSquare, ArrowRight } from 'lucide-react'
+import { Phone, X, MessageSquare, ArrowRight, Globe, ChevronLeft, ChevronRight } from 'lucide-react'
 import Image from "next/image"
 
 interface DialogflowBotProps {
@@ -39,6 +39,7 @@ const DialogflowBot: React.FC<DialogflowBotProps> = ({ isOpen, onClose }) => {
 export default function FAQ() {
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [activeQuestion, setActiveQuestion] = useState<number | null>(null);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
   const questions = [
     "What is Aira?",
@@ -46,57 +47,157 @@ export default function FAQ() {
     "How do I get started?"
   ];
 
+  const phoneNumbers = [
+    {
+      country: "United States",
+      flag: "🇺🇸",
+      code: "+1 (555)",
+      number: "123-4567",
+      fullNumber: "+15551234567",
+      color: "blue",
+      gradient: "from-blue-50 via-white to-blue-50",
+      borderColor: "border-blue-200",
+      hoverBorderColor: "hover:border-blue-500",
+      iconGradient: "from-blue-500 to-blue-600",
+      textColor: "text-blue-600",
+      ringColor: "ring-blue-200"
+    },
+    {
+      country: "India",
+      flag: "🇮🇳",
+      code: "+91 98765",
+      number: "43210",
+      fullNumber: "+919876543210",
+      color: "orange",
+      gradient: "from-orange-50 via-white to-orange-50",
+      borderColor: "border-orange-200",
+      hoverBorderColor: "hover:border-orange-500",
+      iconGradient: "from-orange-500 to-orange-600",
+      textColor: "text-orange-600",
+      ringColor: "ring-orange-200"
+    }
+  ];
+
+  const handlePrevCard = () => {
+    setCurrentCardIndex((prev) => (prev === 0 ? phoneNumbers.length - 1 : prev - 1));
+  };
+
+  const handleNextCard = () => {
+    setCurrentCardIndex((prev) => (prev === phoneNumbers.length - 1 ? 0 : prev + 1));
+  };
+
   return (
     <section id="faqs" className="w-full mx-auto py-12 px-4">
-      <h2 className="text-3xl font-bold mb-8 text-center sm:text-4xl md:text-5xl">Frequently Asked Questions</h2>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-7xl items-center mx-auto"> 
-        <div className="flex flex-col justify-center col-span-1">
-          <Card className="max-w-lg w-full p-6 bg-gradient-to-br from-white via-white to-red-50 shadow-lg rounded-2xl mx-auto relative overflow-hidden group">
-            {/* Decorative background elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-red-900/5 rounded-full transform translate-x-16 -translate-y-16" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-red-900/5 rounded-full transform -translate-x-16 translate-y-16" />
-            
-            <div className="relative space-y-6">
-              <div className="flex items-start gap-3">
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold mb-6 flex items-center gap-3 text-red-900">
-                    <MessageSquare className="h-6 w-6" />
-                    Ask anything about Aira:
-                  </h2>
-                  
-                  <div className="space-y-4">
-                    {questions.map((question, index) => (
-                      <div
-                        key={index}
-                        className={`relative p-4 rounded-lg transition-all duration-300 cursor-pointer
-                          ${activeQuestion === index 
-                            ? 'bg-red-900/10 shadow-md' 
-                            : 'hover:bg-red-900/5'}`}
-                        onMouseEnter={() => setActiveQuestion(index)}
-                        onMouseLeave={() => setActiveQuestion(null)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <p className="text-gray-700 text-lg font-medium">
-                            {question}
-                          </p>
-                          <ArrowRight className={`h-5 w-5 text-red-900 transform transition-transform duration-300
-                            ${activeQuestion === index ? 'translate-x-1 opacity-100' : 'opacity-0'}`}
-                          />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 w-full max-w-7xl items-center mx-auto">
+        {/* Left Side - Call to Action & Phone Numbers */}
+        <div className="flex flex-col justify-center space-y-8">
+          <div className="text-left">
+            <h3 className="text-4xl sm:text-5xl md:text-6xl font-black mb-4 text-[#722F37] leading-tight">
+              Call AiRA for a
+              <span className="block text-5xl sm:text-6xl md:text-7xl mt-2 bg-gradient-to-r from-[#722F37] via-red-600 to-rose-500 bg-clip-text text-transparent">Live Demo</span>
+            </h3>
+            <p className="text-lg sm:text-xl text-gray-600 font-medium mt-4">
+              Experience AiRA in action!
+            </p>
+            <p className="text-lg sm:text-xl text-[#722F37] font-bold mt-2">Select your region and call now ↓</p>
+          </div>
+
+          <div className="relative flex items-center justify-center">
+            {/* Swipe Left Arrow */}
+            <button
+              onClick={handlePrevCard}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 bg-white rounded-full p-3 shadow-xl hover:shadow-2xl hover:scale-110 transition-all border-2 border-gray-200 hover:border-[#722F37]"
+            >
+              <ChevronLeft className="h-6 w-6 text-[#722F37]" />
+            </button>
+
+            {/* Swipe Right Arrow */}
+            <button
+              onClick={handleNextCard}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 bg-white rounded-full p-3 shadow-xl hover:shadow-2xl hover:scale-110 transition-all border-2 border-gray-200 hover:border-[#722F37]"
+            >
+              <ChevronRight className="h-6 w-6 text-[#722F37]" />
+            </button>
+
+            {/* Flashcard Stack - Side by Side with Offset */}
+            <div className="relative w-full max-w-xl mx-auto flex items-center justify-center" style={{ minHeight: '260px' }}>
+              {phoneNumbers.map((phone, index) => {
+                const isActive = index === currentCardIndex;
+                const isPrev = index === (currentCardIndex === 0 ? phoneNumbers.length - 1 : currentCardIndex - 1);
+                const isNext = index === (currentCardIndex === phoneNumbers.length - 1 ? 0 : currentCardIndex + 1);
+
+                let position = 'hidden';
+                let xOffset = 0;
+                let zIndex = 0;
+                let scale = 0.85;
+                let opacity = 0.5;
+
+                if (isActive) {
+                  position = 'active';
+                  xOffset = 0;
+                  zIndex = 20;
+                  scale = 1;
+                  opacity = 1;
+                } else if (isNext) {
+                  position = 'next';
+                  xOffset = 180;
+                  zIndex = 10;
+                  scale = 0.85;
+                  opacity = 0.5;
+                } else if (isPrev) {
+                  position = 'prev';
+                  xOffset = -180;
+                  zIndex = 10;
+                  scale = 0.85;
+                  opacity = 0.5;
+                }
+
+                if (position === 'hidden') return null;
+
+                return (
+                  <a
+                    key={index}
+                    href={`tel:${phone.fullNumber}`}
+                    className={`absolute transition-all duration-500 ${
+                      isActive ? 'cursor-pointer' : 'pointer-events-none'
+                    }`}
+                    style={{
+                      transform: `translateX(${xOffset}px) scale(${scale})`,
+                      zIndex: zIndex,
+                      opacity: opacity,
+                      width: '280px'
+                    }}
+                  >
+                    <Card className={`px-6 py-4 transition-all duration-500 border-4 ${phone.borderColor} bg-white relative overflow-hidden shadow-2xl rounded-2xl`}>
+                      <div className="flex items-center gap-4 relative z-10">
+                        <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${phone.iconGradient} flex items-center justify-center shadow-lg ring-3 ${phone.ringColor} flex-shrink-0`}>
+                          <Globe className="h-7 w-7 text-white" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <p className={`text-xs font-black ${phone.textColor} mb-2 uppercase tracking-wider`}>{phone.flag} {phone.country}</p>
+                          <div className="bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-200">
+                            <p className="text-2xl font-black text-[#722F37] tracking-tight leading-tight">{phone.code}</p>
+                            <p className="text-2xl font-black text-[#722F37] tracking-tight leading-tight">{phone.number}</p>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                    </Card>
+                  </a>
+                );
+              })}
             </div>
-            
-            {/* Interactive hover gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-red-900/0 via-red-900/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-          </Card>
+          </div>
+
+          <div className="flex justify-center mt-8">
+            <div className="inline-flex items-center gap-2 px-8 py-4 bg-white border-2 border-green-500 rounded-full shadow-lg">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <p className="text-lg font-bold text-green-700">Book your appointment instantly!</p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-col justify-center items-center col-span-1 space-y-4">
+        {/* Right Side - AI Assistant Avatar */}
+        <div className="flex flex-col justify-center items-center space-y-8">
           <div className="relative w-80 h-80">
             <div className="absolute inset-0 rounded-full bg-rose-200/30 animate-pulse-slow"></div>
             <div className="absolute inset-[10%] rounded-full bg-rose-200/40 animate-pulse-medium"></div>
@@ -110,16 +211,16 @@ export default function FAQ() {
                 className="w-full h-full object-cover"
               />
             </div>
-          </div>
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            <Button 
-              size="lg" 
-              className="bg-[#722F37] hover:bg-[#8a383f] text-white px-8 py-6 text-lg rounded-full"
-              onClick={() => setIsBotOpen(true)}
-            >
-              <Mic className="mr-2 h-5 w-5" />
-              Talk to Aira
-            </Button>
+            {/* Let's Talk Badge */}
+            <div className="absolute -right-4 top-1/2 -translate-y-1/2">
+              <div className="relative flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-red-600 to-rose-600 shadow-2xl animate-pulse border-4 border-white">
+                <p className="text-white font-black text-center text-sm leading-tight">Let's<br/>Talk!</p>
+                <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-5 w-5 bg-yellow-500 text-white font-black text-xs items-center justify-center shadow-lg">!</span>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -21,25 +21,13 @@ export function VideoLogo({
       className={`flex items-center justify-center ${className}`}
       style={{ width, height }}
     >
-      {/* Original logo for dark theme */}
+      {/* Red logo for both light and dark theme */}
       <Image
         src="/images/aira-logo-new.png"
         alt="AiRA Logo"
         width={width}
         height={height}
-        className="object-contain dark:block hidden"
-        priority
-      />
-      {/* White logo for light theme using CSS filter */}
-      <Image
-        src="/images/aira-logo-new.png"
-        alt="AiRA Logo"
-        width={width}
-        height={height}
-        className="object-contain dark:hidden block"
-        style={{
-          filter: 'brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%)'
-        }}
+        className="object-contain"
         priority
       />
     </div>
@@ -75,25 +63,13 @@ export function SidebarVideoLogo() {
       className="flex items-center justify-center transition-opacity duration-200"
       style={{ width: 130, height: 42 }}
     >
-      {/* Original logo for dark theme sidebar */}
+      {/* Red logo for both light and dark theme sidebar */}
       <Image
         src="/images/aira-logo-new.png"
         alt="AiRA Logo"
         width={130}
         height={42}
-        className="object-contain dark:block hidden"
-        priority
-      />
-      {/* White logo for light theme sidebar */}
-      <Image
-        src="/images/aira-logo-new.png"
-        alt="AiRA Logo"
-        width={130}
-        height={42}
-        className="object-contain dark:hidden block"
-        style={{
-          filter: 'brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%)'
-        }}
+        className="object-contain"
         priority
       />
     </div>
