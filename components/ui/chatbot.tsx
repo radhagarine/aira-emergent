@@ -48,6 +48,55 @@ const quickReplies = [
 
 export function Chatbot({ className }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const audioContextRef = useRef<AudioContext | null>(null)
+
+  // Initialize audio context
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+    }
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+      }
+    }
+  }, [])
+
+  // Play notification sound
+  const playNotificationSound = () => {
+    if (!audioContextRef.current) return
+
+    const ctx = audioContextRef.current
+    const oscillator = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(ctx.destination)
+
+    // Create a pleasant notification sound (two tones)
+    oscillator.frequency.value = 800
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1)
+
+    oscillator.start(ctx.currentTime)
+    oscillator.stop(ctx.currentTime + 0.1)
+
+    // Second tone
+    setTimeout(() => {
+      const oscillator2 = ctx.createOscillator()
+      const gainNode2 = ctx.createGain()
+
+      oscillator2.connect(gainNode2)
+      gainNode2.connect(ctx.destination)
+
+      oscillator2.frequency.value = 1000
+      gainNode2.gain.setValueAtTime(0.3, ctx.currentTime)
+      gainNode2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15)
+
+      oscillator2.start(ctx.currentTime)
+      oscillator2.stop(ctx.currentTime + 0.15)
+    }, 100)
+  }
   const [isMinimized, setIsMinimized] = useState(false)
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [newMessage, setNewMessage] = useState('')
@@ -111,11 +160,17 @@ export function Chatbot({ className }: ChatbotProps) {
     handleSendMessage(reply)
   }
 
+  const handleOpenChat = () => {
+    setIsOpen(true)
+    // Play notification sound
+    playNotificationSound()
+  }
+
   if (!isOpen) {
     return (
       <div className={cn("fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50", className)}>
         <Button
-          onClick={() => setIsOpen(true)}
+          onClick={handleOpenChat}
           size="lg"
           className="h-14 w-14 sm:h-16 sm:w-16 rounded-full p-0 overflow-hidden border-4 border-[#8B0000] shadow-2xl hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white"
         >
