@@ -75,19 +75,19 @@ export function HeroMedia({ onVideoLoad }: HeroMediaProps) {
         <source src="/audio/vedio1.mp4" type="video/mp4" />
       </video>
 
-      {/* Audio Control Button */}
+      {/* Audio Control Button - Positioned next to chatbot */}
       {isVideoLoaded && (
         <button
           onClick={toggleMute}
-          className="absolute bottom-4 right-4 z-20 p-2 rounded-full 
-                     bg-white/10 backdrop-blur-sm hover:bg-white/20 
-                     transition-colors duration-200"
+          className="fixed bottom-4 right-20 sm:bottom-6 sm:right-24 z-40 p-3 rounded-full
+                     bg-[#8B0000] backdrop-blur-sm hover:bg-[#8B0000]/90
+                     transition-all duration-200 shadow-lg hover:scale-110 border-2 border-white/30"
           aria-label={isMuted ? "Unmute video" : "Mute video"}
         >
           {isMuted ? (
             <VolumeX className="w-6 h-6 text-white" />
           ) : (
-            <Volume2 className="w-6 h-6 text-white" />
+            <Volume2 className="w-6 h-6 text-white animate-pulse" />
           )}
         </button>
       )}

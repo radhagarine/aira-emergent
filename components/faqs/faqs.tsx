@@ -211,16 +211,20 @@ export default function FAQ() {
                 className="w-full h-full object-cover"
               />
             </div>
-            {/* Let's Talk Badge */}
-            <div className="absolute -right-4 top-1/2 -translate-y-1/2">
-              <div className="relative flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-red-600 to-rose-600 shadow-2xl animate-pulse border-4 border-white">
-                <p className="text-white font-black text-center text-sm leading-tight">Let's<br/>Talk!</p>
-                <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-5 w-5 bg-yellow-500 text-white font-black text-xs items-center justify-center shadow-lg">!</span>
-                </span>
-              </div>
-            </div>
+            {/* Circular Text - Let's Talk */}
+            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 320 320">
+              <defs>
+                <path
+                  id="circlePath"
+                  d="M 160, 160 m -140, 0 a 140,140 0 1,1 280,0 a 140,140 0 1,1 -280,0"
+                />
+              </defs>
+              <text className="fill-[#722F37] font-black text-2xl tracking-[0.3em]" style={{ letterSpacing: '0.3em' }}>
+                <textPath href="#circlePath" startOffset="25%">
+                  LET'S TALK! ☎
+                </textPath>
+              </text>
+            </svg>
           </div>
         </div>
       </div>
