@@ -65,10 +65,10 @@ export function Features() {
     <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-gray-50 to-white">
       <div className="container px-4 md:px-6 mx-auto max-w-7xl">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl mb-4">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl mb-4 text-gray-900">
             Voice Integrated Features for Modern Businesses
           </h2>
-          <p className="text-xl text-gray-600 max-w-[800px] mx-auto">
+          <p className="text-xl text-gray-700 max-w-[800px] mx-auto">
             Everything you need to revolutionize your reception services
           </p>
         </div>
@@ -85,11 +85,11 @@ export function Features() {
                 blur-xl"
               />
               
-              <Card className="relative h-full overflow-hidden p-8 backdrop-blur-sm border-0 
+              <Card className="relative h-full overflow-hidden p-8 backdrop-blur-sm border-0
                 bg-white/90 shadow-lg shadow-red-500/10 hover:shadow-xl hover:shadow-red-500/20"
               >
                 <div className="relative">
-                  <div className={`w-16 h-16 rounded-2xl ${item.iconColor} mb-6 mx-auto 
+                  <div className={`w-16 h-16 rounded-2xl ${item.iconColor} mb-6 mx-auto
                     transform transition-transform duration-300 group-hover:scale-110 relative`}
                   >
                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/50 to-transparent" />
@@ -99,8 +99,8 @@ export function Features() {
                   <h3 className="text-xl font-semibold mb-4 text-center text-gray-900">
                     {item.title}
                   </h3>
-                  
-                  <p className="text-sm leading-relaxed text-center text-gray-600">
+
+                  <p className="text-sm leading-relaxed text-center text-gray-700">
                     {item.description}
                   </p>
                 </div>

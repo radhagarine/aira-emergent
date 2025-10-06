@@ -52,8 +52,8 @@ const businesses = [
   {
     icon: Home,
     name: 'Real Estate',
-    position: { top: '20%', right: '20%' },
-    chatPosition: { top: '50%', left: '110%', transform: 'translateY(-50%)' },
+    position: { top: '20%', right: '25%' },
+    chatPosition: { top: '50%', right: '110%', transform: 'translateY(-50%)' },
     messages: [
       { role: 'ai', content: "Looking for your dream home? Let's start your property search today!" },
       { role: 'user', content: "I'm interested in viewing 3-bedroom houses." }

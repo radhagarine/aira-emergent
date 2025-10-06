@@ -79,9 +79,9 @@ export function HeroMedia({ onVideoLoad }: HeroMediaProps) {
       {isVideoLoaded && (
         <button
           onClick={toggleMute}
-          className="fixed bottom-4 right-20 sm:bottom-6 sm:right-24 z-40 p-3 rounded-full
+          className="fixed bottom-4 right-20 sm:bottom-6 sm:right-24 z-[9999] p-3 rounded-full
                      bg-[#8B0000] backdrop-blur-sm hover:bg-[#8B0000]/90
-                     transition-all duration-200 shadow-lg hover:scale-110 border-2 border-white/30"
+                     transition-all duration-200 shadow-2xl hover:scale-110 border-2 border-white/30"
           aria-label={isMuted ? "Unmute video" : "Mute video"}
         >
           {isMuted ? (
