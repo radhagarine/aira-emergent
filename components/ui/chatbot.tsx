@@ -180,7 +180,7 @@ export function Chatbot({ className }: ChatbotProps) {
             className="h-full w-full object-cover"
           />
         </Button>
-        <div className="hidden sm:block absolute -top-12 right-0 bg-gray-900 text-white px-3 py-1 rounded-lg text-sm whitespace-nowrap">
+        <div className="hidden sm:block absolute -top-12 right-0 bg-gray-900 text-white px-3 py-1 rounded-lg text-sm whitespace-nowrap z-50 shadow-lg">
           Need help? Chat with AiRA
           <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
         </div>

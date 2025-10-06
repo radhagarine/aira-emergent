@@ -30,7 +30,7 @@ export function Navbar() {
         <nav className="flex h-16 items-center justify-between">
           <BrandLogo />
           <NavLinks scrolled={scrolled} />
-          <AuthButtons />
+          <AuthButtons scrolled={scrolled} />
         </nav>
       </div>
     </header>

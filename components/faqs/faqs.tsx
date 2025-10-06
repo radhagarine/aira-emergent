@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Phone, X, MessageSquare, ArrowRight, Globe, ChevronLeft, ChevronRight } from 'lucide-react'
 import Image from "next/image"
+import { BookingDialog } from '@/components/booking-dialog'
 
 interface DialogflowBotProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export default function FAQ() {
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [activeQuestion, setActiveQuestion] = useState<number | null>(null);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [showBookingForm, setShowBookingForm] = useState(false);
 
   const questions = [
     "What is Aira?",
@@ -189,10 +191,13 @@ export default function FAQ() {
           </div>
 
           <div className="flex justify-center mt-8">
-            <div className="inline-flex items-center gap-2 px-8 py-4 bg-white border-2 border-green-500 rounded-full shadow-lg">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <p className="text-lg font-bold text-green-700">Book your appointment instantly!</p>
-            </div>
+            <button
+              onClick={() => setShowBookingForm(true)}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-white border-2 border-[#8B0000] rounded-full shadow-lg hover:bg-[#8B0000] transition-all duration-300 hover:scale-105 group"
+            >
+              <div className="w-3 h-3 bg-[#8B0000] rounded-full animate-pulse"></div>
+              <p className="text-lg font-bold text-[#8B0000] group-hover:text-white transition-colors">Book your appointment instantly!</p>
+            </button>
           </div>
         </div>
 
@@ -230,6 +235,7 @@ export default function FAQ() {
       </div>
 
       <DialogflowBot isOpen={isBotOpen} onClose={() => setIsBotOpen(false)} />
+      <BookingDialog open={showBookingForm} onOpenChange={setShowBookingForm} />
 
       <style jsx global>{`
         @keyframes pulse-slow {

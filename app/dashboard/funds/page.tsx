@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, CreditCard, DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react'
+import { Plus, CreditCard, DollarSign, TrendingUp, Clock, CheckCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -19,6 +19,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface Transaction {
   id: string
@@ -31,6 +41,16 @@ interface Transaction {
 
 export default function FundsPage() {
   const [balance, setBalance] = useState(0.96)
+  const [showAddFundsDialog, setShowAddFundsDialog] = useState(false)
+  const [showAddCardDialog, setShowAddCardDialog] = useState(false)
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
+  const [customAmount, setCustomAmount] = useState('')
+  const [cardDetails, setCardDetails] = useState({
+    cardNumber: '',
+    cardName: '',
+    expiryDate: '',
+    cvv: '',
+  })
   const [transactions, setTransactions] = useState<Transaction[]>([
     {
       id: '1',
@@ -85,8 +105,45 @@ export default function FundsPage() {
   }
 
   const handleAddFunds = () => {
-    // TODO: Implement payment gateway integration
-    console.log('Add funds clicked')
+    setShowAddFundsDialog(true)
+  }
+
+  const handleAddCard = () => {
+    setShowAddCardDialog(true)
+  }
+
+  const handleCardInputChange = (field: string, value: string) => {
+    // Format card number
+    if (field === 'cardNumber') {
+      value = value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim()
+      if (value.length > 19) return
+    }
+    // Format expiry date
+    if (field === 'expiryDate') {
+      value = value.replace(/\D/g, '')
+      if (value.length >= 2) {
+        value = value.slice(0, 2) + '/' + value.slice(2, 4)
+      }
+      if (value.length > 5) return
+    }
+    // Format CVV
+    if (field === 'cvv' && value.length > 3) return
+
+    setCardDetails(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleSaveCard = () => {
+    console.log('Card saved:', cardDetails)
+    setShowAddCardDialog(false)
+    setCardDetails({ cardNumber: '', cardName: '', expiryDate: '', cvv: '' })
+  }
+
+  const handleConfirmPayment = () => {
+    const amount = selectedAmount || parseFloat(customAmount)
+    console.log('Processing payment:', amount)
+    setShowAddFundsDialog(false)
+    setSelectedAmount(null)
+    setCustomAmount('')
   }
 
   return (
@@ -266,6 +323,170 @@ export default function FundsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Add Funds Dialog */}
+      <Dialog open={showAddFundsDialog} onOpenChange={setShowAddFundsDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Funds</DialogTitle>
+            <DialogDescription>
+              Select an amount or enter a custom amount to add to your wallet
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Select Amount</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[10, 25, 50, 100, 250, 500].map((amount) => (
+                  <Button
+                    key={amount}
+                    variant={selectedAmount === amount ? "default" : "outline"}
+                    onClick={() => {
+                      setSelectedAmount(amount)
+                      setCustomAmount('')
+                    }}
+                    className={selectedAmount === amount ? "bg-red-800 hover:bg-red-900" : ""}
+                  >
+                    ${amount}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="custom-amount">Custom Amount</Label>
+              <Input
+                id="custom-amount"
+                type="number"
+                placeholder="Enter amount"
+                value={customAmount}
+                onChange={(e) => {
+                  setCustomAmount(e.target.value)
+                  setSelectedAmount(null)
+                }}
+                min="1"
+                step="0.01"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Payment Method</Label>
+              <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">•••• •••• •••• 4242</p>
+                    <p className="text-sm text-muted-foreground">Expires 12/25</p>
+                  </div>
+                </div>
+                <Badge variant="secondary">Primary</Badge>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setShowAddFundsDialog(false)
+                  handleAddCard()
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Card
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddFundsDialog(false)
+                setSelectedAmount(null)
+                setCustomAmount('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-800 hover:bg-red-900 text-white"
+              onClick={handleConfirmPayment}
+              disabled={!selectedAmount && !customAmount}
+            >
+              Confirm Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Card Dialog */}
+      <Dialog open={showAddCardDialog} onOpenChange={setShowAddCardDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Payment Method</DialogTitle>
+            <DialogDescription>
+              Enter your card details to add a new payment method
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="card-number">Card Number</Label>
+              <Input
+                id="card-number"
+                placeholder="1234 5678 9012 3456"
+                value={cardDetails.cardNumber}
+                onChange={(e) => handleCardInputChange('cardNumber', e.target.value)}
+                maxLength={19}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="card-name">Cardholder Name</Label>
+              <Input
+                id="card-name"
+                placeholder="John Doe"
+                value={cardDetails.cardName}
+                onChange={(e) => handleCardInputChange('cardName', e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="expiry-date">Expiry Date</Label>
+                <Input
+                  id="expiry-date"
+                  placeholder="MM/YY"
+                  value={cardDetails.expiryDate}
+                  onChange={(e) => handleCardInputChange('expiryDate', e.target.value)}
+                  maxLength={5}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cvv">CVV</Label>
+                <Input
+                  id="cvv"
+                  type="password"
+                  placeholder="123"
+                  value={cardDetails.cvv}
+                  onChange={(e) => handleCardInputChange('cvv', e.target.value)}
+                  maxLength={3}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddCardDialog(false)
+                setCardDetails({ cardNumber: '', cardName: '', expiryDate: '', cvv: '' })
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-800 hover:bg-red-900 text-white"
+              onClick={handleSaveCard}
+              disabled={!cardDetails.cardNumber || !cardDetails.cardName || !cardDetails.expiryDate || !cardDetails.cvv}
+            >
+              Save Card
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
