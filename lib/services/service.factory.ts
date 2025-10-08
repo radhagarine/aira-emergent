@@ -4,10 +4,17 @@ import { BusinessService } from './business/business.service';
 import { AppointmentService } from './appointment/appointment.service';
 import { FileService } from './file/file.service';
 import { BusinessNumbersService } from './numbers/business-numbers.service';
+import { TransactionService } from './transaction/transaction.service';
+import { WalletService } from './wallet/wallet.service';
+import { StripeService } from './payment/stripe.service';
+import { TwilioService } from './twilio/twilio.service';
+import { TwilioNumbersService } from './twilio/twilio-numbers.service';
 import { IBusinessService } from './business/types';
 import { IAppointmentService } from './appointment/types';
 import { IFileService } from './file/types';
 import { IBusinessNumbersService } from './numbers/types';
+import { ITransactionService } from './transaction/types';
+import { IWalletService } from './wallet/types';
 
 /**
  * Service factory that provides instances of all application services
@@ -20,6 +27,11 @@ export class ServiceFactory {
   private appointmentService: IAppointmentService | null = null;
   private fileService: IFileService | null = null;
   private businessNumbersService: IBusinessNumbersService | null = null;
+  private transactionService: ITransactionService | null = null;
+  private walletService: IWalletService | null = null;
+  private stripeService: StripeService | null = null;
+  private twilioService: TwilioService | null = null;
+  private twilioNumbersService: TwilioNumbersService | null = null;
   private repositoryFactory: RepositoryFactory;
 
   private constructor(repoFactory?: RepositoryFactory) {
@@ -77,6 +89,56 @@ export class ServiceFactory {
   }
 
   /**
+   * Get the transaction service
+   */
+  public getTransactionService(): ITransactionService {
+    if (!this.transactionService) {
+      this.transactionService = new TransactionService(this.repositoryFactory);
+    }
+    return this.transactionService;
+  }
+
+  /**
+   * Get the wallet service
+   */
+  public getWalletService(): IWalletService {
+    if (!this.walletService) {
+      this.walletService = new WalletService(this.repositoryFactory);
+    }
+    return this.walletService;
+  }
+
+  /**
+   * Get the Stripe service
+   */
+  public getStripeService(): StripeService {
+    if (!this.stripeService) {
+      this.stripeService = new StripeService();
+    }
+    return this.stripeService;
+  }
+
+  /**
+   * Get the Twilio service
+   */
+  public getTwilioService(): TwilioService {
+    if (!this.twilioService) {
+      this.twilioService = new TwilioService();
+    }
+    return this.twilioService;
+  }
+
+  /**
+   * Get the Twilio Numbers service
+   */
+  public getTwilioNumbersService(): TwilioNumbersService {
+    if (!this.twilioNumbersService) {
+      this.twilioNumbersService = new TwilioNumbersService();
+    }
+    return this.twilioNumbersService;
+  }
+
+  /**
    * Reset all services (mostly used for testing)
    */
   public reset(): void {
@@ -84,6 +146,11 @@ export class ServiceFactory {
     this.appointmentService = null;
     this.fileService = null;
     this.businessNumbersService = null;
+    this.transactionService = null;
+    this.walletService = null;
+    this.stripeService = null;
+    this.twilioService = null;
+    this.twilioNumbersService = null;
   }
 
   /**
@@ -114,4 +181,24 @@ export const getFileService = (): IFileService => {
 
 export const getBusinessNumbersService = (): IBusinessNumbersService => {
   return getServiceFactory().getBusinessNumbersService();
+};
+
+export const getTransactionService = (): ITransactionService => {
+  return getServiceFactory().getTransactionService();
+};
+
+export const getWalletService = (): IWalletService => {
+  return getServiceFactory().getWalletService();
+};
+
+export const getStripeService = (): StripeService => {
+  return getServiceFactory().getStripeService();
+};
+
+export const getTwilioService = (): TwilioService => {
+  return getServiceFactory().getTwilioService();
+};
+
+export const getTwilioNumbersService = (): TwilioNumbersService => {
+  return getServiceFactory().getTwilioNumbersService();
 };

@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, CreditCard, DollarSign, TrendingUp, Clock, CheckCircle, X } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Plus, CreditCard, DollarSign, TrendingUp, Clock, CheckCircle, X, Loader2 } from 'lucide-react'
+import { useAuth } from '@/components/providers/supabase-provider'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -40,44 +43,93 @@ interface Transaction {
 }
 
 export default function FundsPage() {
-  const [balance, setBalance] = useState(0.96)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { user } = useAuth()
+
+  const [balance, setBalance] = useState(0)
+  const [balanceINR, setBalanceINR] = useState(0)
   const [showAddFundsDialog, setShowAddFundsDialog] = useState(false)
   const [showAddCardDialog, setShowAddCardDialog] = useState(false)
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
   const [customAmount, setCustomAmount] = useState('')
+  const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'INR'>('USD')
+  const [isProcessing, setIsProcessing] = useState(false)
   const [cardDetails, setCardDetails] = useState({
     cardNumber: '',
     cardName: '',
     expiryDate: '',
     cvv: '',
   })
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: '1',
-      date: '2025-09-23T10:30:00Z',
-      type: 'credit',
-      amount: 50.00,
-      description: 'Account top-up via Credit Card',
-      status: 'completed'
-    },
-    {
-      id: '2',
-      date: '2025-09-22T15:45:00Z',
-      type: 'debit',
-      amount: 5.00,
-      description: 'Phone number purchase - +1 (555) 123-4567',
-      status: 'completed'
-    },
-    {
-      id: '3',
-      date: '2025-09-21T09:20:00Z',
-      type: 'debit',
-      amount: 44.04,
-      description: 'Monthly phone number rental charges',
-      status: 'completed'
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Fetch wallet balance and transactions
+  const fetchWalletData = async () => {
+    if (!user) {
+      // If the user session isn't ready yet, don't block the UI
+      setLoading(false)
+      return
     }
-  ])
-  const [loading, setLoading] = useState(false)
+
+    try {
+      setLoading(true)
+
+      // Fetch wallet balance
+      const walletResponse = await fetch('/api/wallet/balance', {
+        credentials: 'include',
+      })
+      if (walletResponse.ok) {
+        const walletData = await walletResponse.json()
+        setBalance(walletData.balance_usd || 0)
+        setBalanceINR(walletData.balance_inr || 0)
+      }
+
+      // Fetch transactions
+      const transactionsResponse = await fetch('/api/wallet/transactions', {
+        credentials: 'include',
+      })
+      if (transactionsResponse.ok) {
+        const transactionsData = await transactionsResponse.json()
+        setTransactions(transactionsData.transactions || [])
+      }
+    } catch (error) {
+      console.error('Error fetching wallet data:', error)
+      toast.error('Failed to load wallet data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load wallet data on mount
+  useEffect(() => {
+    fetchWalletData()
+  }, [user])
+
+  // Handle payment success/cancel from URL params
+  useEffect(() => {
+    const success = searchParams.get('success')
+    const canceled = searchParams.get('canceled')
+    const sessionId = searchParams.get('session_id')
+
+    if (success === 'true' && sessionId) {
+      toast.success('Payment Successful!', {
+        description: 'Your wallet has been topped up successfully.',
+      })
+      // Refresh wallet data
+      fetchWalletData()
+      // Clear URL params
+      router.replace('/dashboard/funds')
+    }
+
+    if (canceled === 'true') {
+      toast.error('Payment Canceled', {
+        description: 'Your payment was canceled. No charges were made.',
+      })
+      // Clear URL params
+      router.replace('/dashboard/funds')
+    }
+  }, [searchParams, router])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -138,12 +190,94 @@ export default function FundsPage() {
     setCardDetails({ cardNumber: '', cardName: '', expiryDate: '', cvv: '' })
   }
 
-  const handleConfirmPayment = () => {
+  const handleConfirmPayment = async () => {
+    console.log('=== Payment Flow Started ===')
+    console.log('User:', user?.id)
+    console.log('Selected Amount:', selectedAmount)
+    console.log('Custom Amount:', customAmount)
+    console.log('Currency:', selectedCurrency)
+
+    if (!user) {
+      console.error('No user found - authentication required')
+      toast.error('Authentication Required', {
+        description: 'Please sign in to add funds.',
+      })
+      return
+    }
+
     const amount = selectedAmount || parseFloat(customAmount)
-    console.log('Processing payment:', amount)
-    setShowAddFundsDialog(false)
-    setSelectedAmount(null)
-    setCustomAmount('')
+
+    if (!amount || amount <= 0) {
+      console.error('Invalid amount:', amount)
+      toast.error('Invalid Amount', {
+        description: 'Please enter a valid amount.',
+      })
+      return
+    }
+
+    console.log('Processing payment for amount:', amount, selectedCurrency)
+    setIsProcessing(true)
+
+    try {
+      console.log('Calling API: /api/payment/create-checkout-session')
+
+      // Add timeout to prevent infinite hanging
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+      const response = await fetch('/api/payment/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: amount,
+          currency: selectedCurrency,
+        }),
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+      console.log('API Response Status:', response.status)
+
+      const data = await response.json()
+      console.log('API Response Data:', data)
+
+      if (!response.ok) {
+        console.error('API Error:', data)
+        throw new Error(data.error || 'Failed to create checkout session')
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        console.log('Redirecting to Stripe:', data.url)
+        window.location.href = data.url
+      } else {
+        throw new Error('No checkout URL received')
+      }
+    } catch (error) {
+      console.error('=== Payment Error ===')
+      console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error)
+      console.error('Error message:', error)
+
+      let errorMessage = 'Failed to process payment'
+
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timeout - please try again'
+        } else {
+          errorMessage = error.message
+        }
+      }
+
+      toast.error('Payment Error', {
+        description: errorMessage,
+      })
+      setIsProcessing(false)
+      setShowAddFundsDialog(false)
+      setSelectedAmount(null)
+      setCustomAmount('')
+    }
   }
 
   return (
@@ -365,7 +499,31 @@ export default function FundsPage() {
                 }}
                 min="1"
                 step="0.01"
+                disabled={isProcessing}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Currency</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={selectedCurrency === 'USD' ? 'default' : 'outline'}
+                  onClick={() => setSelectedCurrency('USD')}
+                  className={selectedCurrency === 'USD' ? 'bg-red-800 hover:bg-red-900' : ''}
+                  disabled={isProcessing}
+                >
+                  USD ($)
+                </Button>
+                <Button
+                  type="button"
+                  variant={selectedCurrency === 'INR' ? 'default' : 'outline'}
+                  onClick={() => setSelectedCurrency('INR')}
+                  className={selectedCurrency === 'INR' ? 'bg-red-800 hover:bg-red-900' : ''}
+                  disabled={isProcessing}
+                >
+                  INR (₹)
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Payment Method</Label>
@@ -400,15 +558,23 @@ export default function FundsPage() {
                 setSelectedAmount(null)
                 setCustomAmount('')
               }}
+              disabled={isProcessing}
             >
               Cancel
             </Button>
             <Button
               className="bg-red-800 hover:bg-red-900 text-white"
               onClick={handleConfirmPayment}
-              disabled={!selectedAmount && !customAmount}
+              disabled={(!selectedAmount && !customAmount) || isProcessing}
             >
-              Confirm Payment
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Confirm Payment'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

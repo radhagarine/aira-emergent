@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Trash2, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,41 +13,64 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useBusinessNumbersService } from '@/components/providers/service-provider'
+import { useAuth } from '@/components/providers/supabase-provider'
 import { BusinessNumberWithBusiness, NumberUsageStats } from '@/lib/types/database/numbers.types'
 import { AddNumberDialog } from './components/AddNumberDialog'
 import { EditNumberDialog } from './components/EditNumberDialog'
 import { DeleteNumberDialog } from './components/DeleteNumberDialog'
 
 export default function NumbersPage() {
+  const router = useRouter()
   const businessNumbersService = useBusinessNumbersService()
+  const { user } = useAuth()
   const [numbers, setNumbers] = useState<BusinessNumberWithBusiness[]>([])
   const [stats, setStats] = useState<NumberUsageStats | null>(null)
+  const [availableBalance, setAvailableBalance] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [editingNumber, setEditingNumber] = useState<BusinessNumberWithBusiness | null>(null)
   const [deletingNumber, setDeletingNumber] = useState<BusinessNumberWithBusiness | null>(null)
 
-  // Mock user ID and balance - in real app, get from auth context
-  const userId = 'user123'
-  const availableBalance = 0.96
+  const userId = user?.id || ''
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (userId) {
+      loadData()
+    } else {
+      // If user not ready yet, don't block the page
+      setLoading(false)
+    }
+  }, [userId])
 
   const loadData = async () => {
     try {
       setLoading(true)
-      const [numbersData, statsData] = await Promise.all([
+      const [numbersData, statsData, balanceData] = await Promise.all([
         businessNumbersService.getAllNumbersByUserId(userId),
-        businessNumbersService.getUsageStatistics(userId)
+        businessNumbersService.getUsageStatistics(userId),
+        fetchWalletBalance()
       ])
       setNumbers(numbersData)
       setStats(statsData)
+      setAvailableBalance(balanceData)
     } catch (error) {
       console.error('Error loading numbers data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchWalletBalance = async (): Promise<number> => {
+    try {
+      const response = await fetch('/api/wallet/balance')
+      if (response.ok) {
+        const data = await response.json()
+        return data.balance_usd || 0
+      }
+      return 0
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error)
+      return 0
     }
   }
 
@@ -110,7 +134,7 @@ export default function NumbersPage() {
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={() => window.location.href = '/dashboard/funds'}
+            onClick={() => router.push('/dashboard/funds')}
           >
             <Plus className="h-4 w-4" />
             Add more funds

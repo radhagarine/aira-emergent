@@ -14,6 +14,13 @@ export interface BusinessNumberRow {
   monthly_cost: number | null;
   features: string[] | null;
   notes: string | null;
+  // Twilio-specific fields
+  twilio_sid: string | null;
+  twilio_account_sid: string | null;
+  voice_url: string | null;
+  sms_url: string | null;
+  status_callback_url: string | null;
+  capabilities: Record<string, boolean> | null;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +39,13 @@ export interface BusinessNumberInsert {
   monthly_cost?: number | null;
   features?: string[] | null;
   notes?: string | null;
+  // Twilio-specific fields
+  twilio_sid?: string | null;
+  twilio_account_sid?: string | null;
+  voice_url?: string | null;
+  sms_url?: string | null;
+  status_callback_url?: string | null;
+  capabilities?: Record<string, boolean> | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -48,8 +62,15 @@ export interface BusinessNumberUpdate {
   provider?: string | null;
   purchase_date?: string | null;
   monthly_cost?: number | null;
-  features?: string[] | null;
+  features?: string | null;
   notes?: string | null;
+  // Twilio-specific fields
+  twilio_sid?: string | null;
+  twilio_account_sid?: string | null;
+  voice_url?: string | null;
+  sms_url?: string | null;
+  status_callback_url?: string | null;
+  capabilities?: Record<string, boolean> | null;
   created_at?: string;
   updated_at?: string;
 }

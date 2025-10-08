@@ -9,6 +9,8 @@ import { RetailDetailsRepository } from './repositories/retail-details.repositor
 import { ServiceDetailsRepository } from './repositories/service-details.repository';
 import { AppointmentsRepository } from './repositories/appointments.repository';
 import { BusinessNumbersRepository } from './repositories/business-numbers.repository';
+import { WalletRepository } from './repositories/wallet.repository';
+import { TransactionRepository } from './repositories/transaction.repository';
 
 import { IBusinessRepository } from './interfaces/business.interface';
 import { IBusinessFilesRepository } from './interfaces/businessfiles.interface';
@@ -18,6 +20,8 @@ import { IRetailDetailsRepository } from './interfaces/retail-details.interface'
 import { IServiceDetailsRepository } from './interfaces/service-details.interface';
 import { IAppointmentsRepository } from './interfaces/appointments.interface';
 import { IBusinessNumbersRepository } from './interfaces/business-numbers.interface';
+import { IWalletRepository } from './interfaces/wallet.interface';
+import { ITransactionRepository } from './interfaces/transaction.interface';
 import { getSupabaseInstance } from '@/components/providers/supabase-provider';
 
 export class RepositoryFactory {
@@ -30,6 +34,8 @@ export class RepositoryFactory {
   private serviceDetailsRepository: IServiceDetailsRepository | null = null;
   private appointmentsRepository: IAppointmentsRepository | null = null;
   private businessNumbersRepository: IBusinessNumbersRepository | null = null;
+  private walletRepository: IWalletRepository | null = null;
+  private transactionRepository: ITransactionRepository | null = null;
 
   private constructor(private readonly supabaseClient: SupabaseClient) {}
 
@@ -106,6 +112,20 @@ export class RepositoryFactory {
     return this.businessNumbersRepository;
   }
 
+  public getWalletRepository(): IWalletRepository {
+    if (!this.walletRepository) {
+      this.walletRepository = new WalletRepository(this.supabaseClient);
+    }
+    return this.walletRepository;
+  }
+
+  public getTransactionRepository(): ITransactionRepository {
+    if (!this.transactionRepository) {
+      this.transactionRepository = new TransactionRepository(this.supabaseClient);
+    }
+    return this.transactionRepository;
+  }
+
   public getClient(): SupabaseClient {
     return this.supabaseClient;
   }
@@ -120,6 +140,8 @@ export class RepositoryFactory {
     this.serviceDetailsRepository = null;
     this.appointmentsRepository = null;
     this.businessNumbersRepository = null;
+    this.walletRepository = null;
+    this.transactionRepository = null;
   }
 }
 
@@ -158,4 +180,12 @@ export const getAppointmentsRepository = (): IAppointmentsRepository => {
 
 export const getBusinessNumbersRepository = (): IBusinessNumbersRepository => {
   return getRepositoryFactory().getBusinessNumbersRepository();
+};
+
+export const getWalletRepository = (): IWalletRepository => {
+  return getRepositoryFactory().getWalletRepository();
+};
+
+export const getTransactionRepository = (): ITransactionRepository => {
+  return getRepositoryFactory().getTransactionRepository();
 };
