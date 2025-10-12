@@ -10,10 +10,10 @@ interface NavLinksProps {
 
 const publicNavItems = [
   { href: "/#hero", label: "Home" },
-  { href: "/#footer", label: "About" },
+  { href: "/#about", label: "About" },
   { href: "/#industries", label: "Services" },
   { href: "/#faqs", label: "FAQs" },
-  { href: "/#footer", label: "Contact" },
+  { href: "/#contact", label: "Contact" },
 ]
 
 export function NavLinks({ scrolled = false }: NavLinksProps) {
