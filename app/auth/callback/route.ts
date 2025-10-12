@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     console.log('Auth callback - Final Site URL:', siteUrl)
 
     if (code) {
-      const cookieStore = cookies()
+      const cookieStore = await cookies()
       const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
       // Exchange the code for a session
