@@ -139,7 +139,7 @@ export function AddNumberDialog({ open, onClose, onSuccess, initialPhoneNumber }
             <Input
               value={phoneNumber}
               disabled
-              className="bg-gray-50"
+              className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium cursor-not-allowed"
             />
           </div>
 
