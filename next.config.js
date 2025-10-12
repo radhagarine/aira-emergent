@@ -2,22 +2,27 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: [
-      'hebbkx1anhila5yf.public.blob.vercel-storage.com',
-      'lh3.googleusercontent.com',
-      'avatars.googleusercontent.com',
-      'googleusercontent.com'
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'hebbkx1anhila5yf.public.blob.vercel-storage.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'googleusercontent.com',
+      },
     ],
   },
-  experimental: {
-    // Increase server timeout to handle slow Supabase queries
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
-  },
-  // Increase timeout for undici (Node 24 compatibility)
-  serverRuntimeConfig: {
-    connectTimeout: 60000,
-    keepAliveTimeout: 65000,
-  },
+  // External packages for server components (Next.js 15 syntax)
+  serverExternalPackages: ['@supabase/supabase-js'],
 }
 
 module.exports = nextConfig
