@@ -35,33 +35,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    // Set up auth state listener to log token refresh events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[Auth] Auth state change event:', event);
-      console.log('[Auth] New session available:', !!session);
-      
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('[Auth] Token was refreshed');
-      }
-    });
-    
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
-  
-  // Effect to initialize auth state and set up listeners
+  // Single effect to initialize auth state and set up listeners
   useEffect(() => {
     // Set loading state
     setIsLoading(true);
-    
+
     // Get initial session
     const initializeAuth = async () => {
       try {
         // Get current session
         const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
+
         if (currentSession) {
           setSession(currentSession);
           setUser(currentSession.user);
@@ -76,9 +60,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Initialize auth
     initializeAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes with logging
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, currentSession) => {
+      (event, currentSession) => {
+        console.log('[Auth] Auth state change event:', event);
+        console.log('[Auth] New session available:', !!currentSession);
+
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('[Auth] Token was refreshed');
+        }
+
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsLoading(false);

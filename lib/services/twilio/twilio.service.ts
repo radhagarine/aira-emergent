@@ -13,7 +13,9 @@ export class TwilioService {
   private authToken: string | null = null;
 
   private constructor() {
-    this.initializeClient();
+    // Don't initialize client in constructor - do it lazily when first needed
+    this.accountSid = process.env.TWILIO_ACCOUNT_SID || null;
+    this.authToken = process.env.TWILIO_AUTH_TOKEN || null;
   }
 
   /**
@@ -27,23 +29,24 @@ export class TwilioService {
   }
 
   /**
-   * Initialize Twilio client from environment variables
+   * Initialize Twilio client (lazy initialization)
    */
   private initializeClient(): void {
-    this.accountSid = process.env.TWILIO_ACCOUNT_SID || null;
-    this.authToken = process.env.TWILIO_AUTH_TOKEN || null;
+    if (this.client) {
+      return; // Already initialized
+    }
 
     if (!this.accountSid || !this.authToken) {
-      console.warn('[TwilioService] Twilio credentials not configured. Number provisioning will be disabled.');
-      return;
+      throw new Error('Twilio credentials not configured. Please set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables.');
     }
 
     try {
+      // Create Twilio client - this can potentially hang if credentials are invalid
       this.client = twilio(this.accountSid, this.authToken);
       console.log('[TwilioService] Twilio client initialized successfully');
     } catch (error) {
       console.error('[TwilioService] Failed to initialize Twilio client:', error);
-      this.client = null;
+      throw new Error(`Failed to initialize Twilio client: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -53,7 +56,10 @@ export class TwilioService {
    */
   public getClient(): Twilio {
     if (!this.client) {
-      throw new Error('Twilio client is not initialized. Please check your TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables.');
+      this.initializeClient();
+    }
+    if (!this.client) {
+      throw new Error('Twilio client could not be initialized. Please check your credentials.');
     }
     return this.client;
   }
@@ -62,7 +68,7 @@ export class TwilioService {
    * Check if Twilio is configured and ready
    */
   public isConfigured(): boolean {
-    return this.client !== null;
+    return this.accountSid !== null && this.authToken !== null;
   }
 
   /**

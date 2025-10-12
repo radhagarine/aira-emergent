@@ -1,6 +1,5 @@
 // src/components/providers/service-provider.tsx
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useSupabase } from '@/components/providers/supabase-provider';
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database/database.types';
 
@@ -64,19 +63,16 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
   repositoryFactoryOverride,
   supabaseClientOverride
 }) => {
-  
-  // Get Supabase client from provider if not overridden
-  const supabaseContext = useSupabase();
-  const supabaseClient = supabaseClientOverride || supabaseContext.supabase;
-
   // Memoize repository factory to prevent infinite re-creation
+  // Use singleton getInstance instead of creating new instances
+  // We don't need to access the Supabase client here since the singleton handles it
   const repositoryFactory = React.useMemo(() => {
-    console.log('[ServiceProvider] Creating repository factory with client');
-    const factory = repositoryFactoryOverride ||
-      (supabaseClient ? RepositoryFactory.createWithClient(supabaseClient) : RepositoryFactory.getInstance());
-    console.log('[ServiceProvider] Repository factory created successfully');
-    return factory;
-  }, [supabaseClient, repositoryFactoryOverride]);
+    if (repositoryFactoryOverride) {
+      return repositoryFactoryOverride;
+    }
+    // Always use singleton instance to prevent memory leaks
+    return RepositoryFactory.getInstance();
+  }, [repositoryFactoryOverride]);
 
   // Initialize or use provided service instances
   const services = React.useMemo(() => {
@@ -189,15 +185,16 @@ export const EnhancedServiceProvider: React.FC<EnhancedServiceProviderProps> = (
   repositoryFactoryOverride,
   supabaseClientOverride
 }) => {
-  // Get Supabase client from provider if not overridden
-  const supabaseContext = useSupabase();
-  const supabaseClient = supabaseClientOverride || supabaseContext.supabase;
-
   // Memoize repository factory to prevent infinite re-creation
+  // Use singleton getInstance instead of creating new instances
+  // We don't need to access the Supabase client here since the singleton handles it
   const repositoryFactory = React.useMemo(() => {
-    return repositoryFactoryOverride ||
-      (supabaseClient ? RepositoryFactory.createWithClient(supabaseClient) : RepositoryFactory.getInstance());
-  }, [supabaseClient, repositoryFactoryOverride]);
+    if (repositoryFactoryOverride) {
+      return repositoryFactoryOverride;
+    }
+    // Always use singleton instance to prevent memory leaks
+    return RepositoryFactory.getInstance();
+  }, [repositoryFactoryOverride]);
 
   // Initialize or use provided service instances
   const services = React.useMemo(() => {

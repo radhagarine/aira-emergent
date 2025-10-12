@@ -5,24 +5,14 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { User, SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database/database.types'
 
-// Import the new BusinessService from the service layer
-import { businessService } from '@/lib/services/business/business.service'
+// Import the central Supabase singleton
+import { getSupabaseInstance } from '@/lib/supabase/client'
 
 declare global {
   interface Window {
     debugSupabase: any;
   }
 }
-
-// Maintain singleton instances
-let supabaseInstance: SupabaseClient<Database> | null = null;
-
-export const getSupabaseInstance = () => {
-  if (!supabaseInstance) {
-    supabaseInstance = createClientComponentClient<Database>();
-  }
-  return supabaseInstance;
-};
 
 // Define context type for Supabase client
 interface SupabaseContextType {
@@ -40,7 +30,6 @@ interface AuthContextType {
   userAvatar: string | null
   signIn: () => Promise<void>
   signOut: () => Promise<void>
-  businessService: typeof businessService
 }
 
 // Create Auth context
@@ -50,8 +39,7 @@ const AuthContext = createContext<AuthContextType>({
   userName: null,
   userAvatar: null,
   signIn: async () => {},
-  signOut: async () => {},
-  businessService: businessService
+  signOut: async () => {}
 })
 
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
@@ -151,14 +139,13 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   
   return (
     <SupabaseContext.Provider value={{ supabase }}>
-      <AuthContext.Provider value={{ 
-        user, 
-        userEmail, 
-        userName, 
+      <AuthContext.Provider value={{
+        user,
+        userEmail,
+        userName,
         userAvatar,
         signIn,
-        signOut,
-        businessService
+        signOut
       }}>
         {children}
       </AuthContext.Provider>
@@ -175,11 +162,8 @@ export const useSupabase = () => {
   return context;
 };
 
-// Custom hook to use auth and business service
+// Custom hook to use auth
 export const useAuth = () => useContext(AuthContext)
 
-// Custom hook specifically for business operations
-export const useBusinessService = () => {
-  const context = useContext(AuthContext)
-  return context.businessService
-}
+// Re-export getSupabaseInstance for backwards compatibility
+export { getSupabaseInstance }

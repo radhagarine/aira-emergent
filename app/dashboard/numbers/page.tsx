@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Plus, Trash2, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,11 +15,11 @@ import { useBusinessNumbersService } from '@/components/providers/service-provid
 import { useAuth } from '@/components/providers/auth-provider'
 import { BusinessNumberWithBusiness, NumberUsageStats } from '@/lib/types/database/numbers.types'
 import { AddNumberDialog } from './components/AddNumberDialog'
+import { BuyNumberDialog } from './components/BuyNumberDialog'
 import { EditNumberDialog } from './components/EditNumberDialog'
 import { DeleteNumberDialog } from './components/DeleteNumberDialog'
 
 export default function NumbersPage() {
-  const router = useRouter()
   const businessNumbersService = useBusinessNumbersService()
   const { user } = useAuth()
   const [numbers, setNumbers] = useState<BusinessNumberWithBusiness[]>([])
@@ -28,7 +27,9 @@ export default function NumbersPage() {
   const [availableBalance, setAvailableBalance] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showBuyDialog, setShowBuyDialog] = useState(false)
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [selectedPhoneNumber, setSelectedPhoneNumber] = useState('')
   const [editingNumber, setEditingNumber] = useState<BusinessNumberWithBusiness | null>(null)
   const [deletingNumber, setDeletingNumber] = useState<BusinessNumberWithBusiness | null>(null)
 
@@ -165,7 +166,7 @@ export default function NumbersPage() {
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={() => router.push('/dashboard/funds')}
+            onClick={() => window.location.href = '/dashboard/funds'}
           >
             <Plus className="h-4 w-4" />
             Add more funds
@@ -175,7 +176,7 @@ export default function NumbersPage() {
             <ExternalLink className="h-4 w-4" />
           </Button>
           <Button
-            onClick={() => setShowAddDialog(true)}
+            onClick={() => setShowBuyDialog(true)}
             className="bg-red-800 hover:bg-red-900 text-white"
           >
             Buy phone number
@@ -252,10 +253,24 @@ export default function NumbersPage() {
       </div>
 
       {/* Dialogs */}
+      <BuyNumberDialog
+        open={showBuyDialog}
+        onClose={() => setShowBuyDialog(false)}
+        onSelectNumber={(phoneNumber) => {
+          setSelectedPhoneNumber(phoneNumber)
+          setShowBuyDialog(false)
+          setShowAddDialog(true)
+        }}
+      />
+
       <AddNumberDialog
         open={showAddDialog}
-        onClose={() => setShowAddDialog(false)}
+        onClose={() => {
+          setShowAddDialog(false)
+          setSelectedPhoneNumber('')
+        }}
         onSuccess={loadData}
+        initialPhoneNumber={selectedPhoneNumber}
       />
 
       {editingNumber && (

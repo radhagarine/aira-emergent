@@ -19,6 +19,20 @@ export async function GET(request: NextRequest) {
           get(name: string) {
             return cookieStore.get(name)?.value;
           },
+          set(name: string, value: string, options: any) {
+            try {
+              cookieStore.set({ name, value, ...options });
+            } catch (error) {
+              // Cookie setting can fail in middleware/server components
+            }
+          },
+          remove(name: string, options: any) {
+            try {
+              cookieStore.set({ name, value: '', ...options });
+            } catch (error) {
+              // Cookie removal can fail in middleware/server components
+            }
+          },
         },
       }
     );
@@ -32,9 +46,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get transaction repository directly
-    const { getTransactionRepository } = await import('@/lib/database/repository.factory');
-    const transactionRepo = getTransactionRepository();
+    // Create repository factory with server-side Supabase client
+    // IMPORTANT: Don't use singleton getInstance() in API routes - it uses client-side Supabase
+    const { RepositoryFactory } = await import('@/lib/database/repository.factory');
+    const repositoryFactory = RepositoryFactory.createWithClient(supabase);
+    const transactionRepo = repositoryFactory.getTransactionRepository();
 
     // Get all transactions for user (already filtered by user_id)
     const allTransactions = await transactionRepo.getByUserId(user.id);

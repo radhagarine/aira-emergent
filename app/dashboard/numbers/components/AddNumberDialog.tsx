@@ -23,66 +23,34 @@ interface AddNumberDialogProps {
   open: boolean
   onClose: () => void
   onSuccess: () => void
+  initialPhoneNumber?: string
 }
 
-interface AvailableNumber {
-  phoneNumber: string
-  friendlyName: string
-  locality: string | null
-  region: string | null
-  monthlyCost: number
-  capabilities: {
-    voice: boolean
-    sms: boolean
-    mms: boolean
-  }
-}
-
-const SUPPORTED_COUNTRIES = [
-  { code: 'US', name: 'United States', flag: '🇺🇸' },
-  { code: 'CA', name: 'Canada', flag: '🇨🇦' },
-  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
-]
-
-const NUMBER_TYPES = [
-  { value: 'local', label: 'Local' },
-  { value: 'tollFree', label: 'Toll-Free' },
-  { value: 'mobile', label: 'Mobile' },
-]
-
-export function AddNumberDialog({ open, onClose, onSuccess }: AddNumberDialogProps) {
+export function AddNumberDialog({ open, onClose, onSuccess, initialPhoneNumber }: AddNumberDialogProps) {
   const businessService = useBusinessService()
-
-  // Search state
-  const [countryCode, setCountryCode] = useState('US')
-  const [numberType, setNumberType] = useState<'local' | 'tollFree' | 'mobile'>('local')
-  const [pattern, setPattern] = useState('')
-  const [searching, setSearching] = useState(false)
-  const [availableNumbers, setAvailableNumbers] = useState<AvailableNumber[]>([])
-  const [searchError, setSearchError] = useState('')
+  const { user } = useAuth()
 
   // Purchase state
-  const [selectedNumber, setSelectedNumber] = useState<string>('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [purchasing, setPurchasing] = useState(false)
   const [purchaseError, setPurchaseError] = useState('')
   const [businesses, setBusinesses] = useState<BusinessResponse[]>([])
   const [selectedBusiness, setSelectedBusiness] = useState('')
   const [displayName, setDisplayName] = useState('')
 
-  const { user } = useAuth()
   const userId = user?.id || ''
 
   useEffect(() => {
     if (open) {
       loadBusinesses()
+      // Set phone number if provided
+      if (initialPhoneNumber) {
+        setPhoneNumber(initialPhoneNumber)
+      }
       // Reset state
-      setAvailableNumbers([])
-      setSelectedNumber('')
-      setPattern('')
-      setSearchError('')
       setPurchaseError('')
     }
-  }, [open])
+  }, [open, initialPhoneNumber])
 
   const loadBusinesses = async () => {
     try {
@@ -96,62 +64,8 @@ export function AddNumberDialog({ open, onClose, onSuccess }: AddNumberDialogPro
     }
   }
 
-  const handleSearch = async () => {
-    console.log('🔍 SEARCH BUTTON CLICKED - handleSearch called');
-    console.log('State:', { countryCode, numberType, pattern, searching });
-
-    if (!countryCode || !numberType) {
-      console.error('❌ Missing required fields');
-      setSearchError('Please select country and number type')
-      return
-    }
-
-    console.log('✅ Validation passed, starting search...');
-    setSearching(true)
-    setSearchError('')
-    setAvailableNumbers([])
-    setSelectedNumber('')
-
-    try {
-      console.log('📡 Making fetch request to /api/numbers/search');
-      const response = await fetch('/api/numbers/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          countryCode,
-          numberType,
-          areaCode: pattern || undefined,
-        }),
-      })
-
-      console.log('📥 Response received:', response.status);
-      const data = await response.json()
-      console.log('📦 Response data:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to search numbers')
-      }
-
-      console.log(`✅ Setting ${data.numbers?.length || 0} numbers in state`);
-      setAvailableNumbers(data.numbers || [])
-
-      if (data.numbers.length === 0) {
-        setSearchError('No numbers found matching your criteria. Try a different area code or pattern.')
-      } else {
-        // Show success toast
-        console.log('🎉 Showing success toast');
-        toast.success(`Found ${data.numbers.length} available phone numbers!`)
-      }
-    } catch (error: any) {
-      console.error('❌ Error searching numbers:', error)
-      setSearchError(error.message || 'Failed to search for numbers')
-    } finally {
-      setSearching(false)
-    }
-  }
-
   const handlePurchase = async () => {
-    if (!selectedNumber) {
+    if (!phoneNumber) {
       setPurchaseError('Please select a phone number')
       return
     }
@@ -174,13 +88,11 @@ export function AddNumberDialog({ open, onClose, onSuccess }: AddNumberDialogPro
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phoneNumber: selectedNumber,
+          phoneNumber: phoneNumber,
           businessId: selectedBusiness,
           displayName,
-          countryCode,
-          numberType: numberType === 'tollFree' ? BusinessNumberType.TOLL_FREE :
-                      numberType === 'mobile' ? BusinessNumberType.MOBILE :
-                      BusinessNumberType.LOCAL,
+          countryCode: 'US',
+          numberType: BusinessNumberType.LOCAL,
           userId,
         }),
       })
@@ -195,13 +107,12 @@ export function AddNumberDialog({ open, onClose, onSuccess }: AddNumberDialogPro
       }
 
       // Success!
+      toast.success('Phone number purchased successfully!')
       onSuccess()
       onClose()
 
       // Reset form
-      setAvailableNumbers([])
-      setSelectedNumber('')
-      setPattern('')
+      setPhoneNumber('')
       setDisplayName('')
     } catch (error: any) {
       console.error('Error purchasing number:', error)
@@ -211,156 +122,60 @@ export function AddNumberDialog({ open, onClose, onSuccess }: AddNumberDialogPro
     }
   }
 
-  const selectedNumberInfo = availableNumbers.find(n => n.phoneNumber === selectedNumber)
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Buy phone number</DialogTitle>
+          <DialogTitle>Purchase phone number</DialogTitle>
           <DialogDescription>
-            Select your country and optionally add a pattern
+            Complete the purchase of your selected phone number
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Search Section */}
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Country</Label>
-                <Select value={countryCode} onValueChange={setCountryCode}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SUPPORTED_COUNTRIES.map((country) => (
-                      <SelectItem key={country.code} value={country.code}>
-                        {country.flag} {country.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Number Type</Label>
-                <Select value={numberType} onValueChange={(v: any) => setNumberType(v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {NUMBER_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label>Pattern (optional)</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="e.g., 615 (area code)"
-                  value={pattern}
-                  onChange={(e) => setPattern(e.target.value)}
-                />
-                <Button
-                  onClick={handleSearch}
-                  disabled={searching}
-                  className="bg-red-800 hover:bg-red-900 text-white"
-                >
-                  {searching ? 'Searching...' : <><Search className="h-4 w-4 mr-2" /> Search</>}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                For example, to search for phone numbers in the US starting with a 615 prefix, specify 615.
-                Search results will be in the form "1615XXXXXX"
-              </p>
-            </div>
-
-            {searchError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-                {searchError}
-              </div>
-            )}
-
-            {/* Success indicator */}
-            {!searching && !searchError && availableNumbers.length > 0 && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-md text-green-700 text-sm font-medium">
-                ✅ Found {availableNumbers.length} available phone numbers
-              </div>
-            )}
+          {/* Phone Number Display */}
+          <div>
+            <Label>Phone Number</Label>
+            <Input
+              value={phoneNumber}
+              disabled
+              className="bg-gray-50"
+            />
           </div>
 
-          {/* Results Section */}
-          {availableNumbers.length > 0 && (
-            <div className="space-y-3">
-              <div>
-                <Label>Select phone number</Label>
-                <Select value={selectedNumber} onValueChange={setSelectedNumber}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a number" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableNumbers.map((number) => (
-                      <SelectItem key={number.phoneNumber} value={number.phoneNumber}>
-                        {number.phoneNumber} - ${number.monthlyCost.toFixed(2)}/month
-                        {number.locality && ` (${number.locality}, ${number.region})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Business Selection */}
+          <div>
+            <Label>Business</Label>
+            <Select value={selectedBusiness} onValueChange={setSelectedBusiness}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select business" />
+              </SelectTrigger>
+              <SelectContent>
+                {businesses.map((business) => (
+                  <SelectItem key={business.id} value={business.id}>
+                    {business.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              {selectedNumber && (
-                <>
-                  <div>
-                    <Label>Business</Label>
-                    <Select value={selectedBusiness} onValueChange={setSelectedBusiness}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select business" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {businesses.map((business) => (
-                          <SelectItem key={business.id} value={business.id}>
-                            {business.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+          {/* Display Name */}
+          <div>
+            <Label>Display Name</Label>
+            <Input
+              placeholder="e.g., Customer Support Line"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              A friendly name to identify this number in your dashboard
+            </p>
+          </div>
 
-                  <div>
-                    <Label>Display Name</Label>
-                    <Input
-                      placeholder="e.g., Customer Support Line"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                    />
-                  </div>
-
-                  {selectedNumberInfo && (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
-                      <div className="font-semibold mb-1">Purchase Summary</div>
-                      <div>Number: {selectedNumberInfo.phoneNumber}</div>
-                      <div>Monthly cost: ${selectedNumberInfo.monthlyCost.toFixed(2)}</div>
-                      <div>Capabilities: Voice: {selectedNumberInfo.capabilities.voice ? '✓' : '✗'},
-                        SMS: {selectedNumberInfo.capabilities.sms ? '✓' : '✗'},
-                        MMS: {selectedNumberInfo.capabilities.mms ? '✓' : '✗'}</div>
-                    </div>
-                  )}
-
-                  {purchaseError && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-                      {purchaseError}
-                    </div>
-                  )}
-                </>
-              )}
+          {purchaseError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+              {purchaseError}
             </div>
           )}
 
@@ -369,15 +184,13 @@ export function AddNumberDialog({ open, onClose, onSuccess }: AddNumberDialogPro
             <Button type="button" variant="outline" onClick={onClose} disabled={purchasing}>
               Cancel
             </Button>
-            {selectedNumber && (
-              <Button
-                onClick={handlePurchase}
-                disabled={purchasing || !displayName || !selectedBusiness}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {purchasing ? 'Purchasing...' : 'Purchase number'}
-              </Button>
-            )}
+            <Button
+              onClick={handlePurchase}
+              disabled={purchasing || !displayName || !selectedBusiness || !phoneNumber}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {purchasing ? 'Purchasing...' : 'Purchase number'}
+            </Button>
           </div>
         </div>
       </DialogContent>

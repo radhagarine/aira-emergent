@@ -70,13 +70,16 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onToggle, isMobile = false }
         </div>
 
         {/* Navigation section */}
-        <nav className="flex-1 px-3 py-8">
+        <nav className="flex-1 px-3 py-8 overflow-y-auto">
           {navItems.map((item) => (
             <Link
               key={item.name}
               href={item.href}
-              onClick={isMobile ? onToggle : undefined} // Close sidebar on mobile when clicking nav item
-              className={`flex items-center gap-3 px-2 py-3 text-white dark:text-gray-200 hover:text-white dark:hover:text-white hover:bg-white/10 dark:hover:bg-gray-700/30 rounded-lg transition-all duration-200 border-2 border-transparent hover:border-white dark:hover:border-gray-400 mb-2 ${
+              onClick={(e) => {
+                console.log(`[Sidebar] Clicked ${item.name} link to ${item.href}`);
+                if (isMobile) onToggle();
+              }}
+              className={`flex items-center gap-3 px-2 py-3 text-white dark:text-gray-200 hover:text-white dark:hover:text-white hover:bg-white/10 dark:hover:bg-gray-700/30 rounded-lg transition-all duration-200 border-2 border-transparent hover:border-white dark:hover:border-gray-400 mb-2 cursor-pointer ${
                 pathname === item.href ? 'text-white bg-white/20 dark:bg-gray-700/40 shadow-lg backdrop-blur-sm' : ''
               }`}
               title={!isOpen && !isMobile ? item.name : undefined}

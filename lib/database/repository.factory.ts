@@ -1,6 +1,6 @@
 // lib/database/repository.factory.ts
 import { SupabaseClient } from '@supabase/supabase-js';
-import { createSupabaseClient } from './client';
+import { getSupabaseInstance } from '@/lib/supabase/client';
 import { BusinessRepository } from './repositories/business.repository';
 import { BusinessFilesRepository } from './repositories/businessfiles.repository';
 import { FileStorageRepository } from './repositories/file-storage.repository';
@@ -22,7 +22,6 @@ import { IAppointmentsRepository } from './interfaces/appointments.interface';
 import { IBusinessNumbersRepository } from './interfaces/business-numbers.interface';
 import { IWalletRepository } from './interfaces/wallet.interface';
 import { ITransactionRepository } from './interfaces/transaction.interface';
-import { getSupabaseInstance } from '@/components/providers/supabase-provider';
 
 export class RepositoryFactory {
   private static instance: RepositoryFactory;
@@ -41,8 +40,8 @@ export class RepositoryFactory {
 
   public static getInstance(): RepositoryFactory {
     if (!RepositoryFactory.instance) {
-      // Create the client only when needed
-      const client = createSupabaseClient();
+      // Use the same Supabase singleton as the provider to prevent memory leaks
+      const client = getSupabaseInstance();
       RepositoryFactory.instance = new RepositoryFactory(client);
     }
     return RepositoryFactory.instance;
