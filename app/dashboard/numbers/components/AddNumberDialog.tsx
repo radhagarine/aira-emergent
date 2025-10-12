@@ -7,13 +7,14 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useBusinessService } from '@/components/providers/service-provider'
-import { useAuth } from '@/components/providers/supabase-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 import { BusinessNumberType } from '@/lib/types/database/numbers.types'
 import { BusinessResponse } from '@/lib/services/business/types'
 import { toast } from 'sonner'
@@ -96,17 +97,23 @@ export function AddNumberDialog({ open, onClose, onSuccess }: AddNumberDialogPro
   }
 
   const handleSearch = async () => {
+    console.log('🔍 SEARCH BUTTON CLICKED - handleSearch called');
+    console.log('State:', { countryCode, numberType, pattern, searching });
+
     if (!countryCode || !numberType) {
+      console.error('❌ Missing required fields');
       setSearchError('Please select country and number type')
       return
     }
 
+    console.log('✅ Validation passed, starting search...');
     setSearching(true)
     setSearchError('')
     setAvailableNumbers([])
     setSelectedNumber('')
 
     try {
+      console.log('📡 Making fetch request to /api/numbers/search');
       const response = await fetch('/api/numbers/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -117,19 +124,26 @@ export function AddNumberDialog({ open, onClose, onSuccess }: AddNumberDialogPro
         }),
       })
 
+      console.log('📥 Response received:', response.status);
       const data = await response.json()
+      console.log('📦 Response data:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to search numbers')
       }
 
+      console.log(`✅ Setting ${data.numbers?.length || 0} numbers in state`);
       setAvailableNumbers(data.numbers || [])
 
       if (data.numbers.length === 0) {
         setSearchError('No numbers found matching your criteria. Try a different area code or pattern.')
+      } else {
+        // Show success toast
+        console.log('🎉 Showing success toast');
+        toast.success(`Found ${data.numbers.length} available phone numbers!`)
       }
     } catch (error: any) {
-      console.error('Error searching numbers:', error)
+      console.error('❌ Error searching numbers:', error)
       setSearchError(error.message || 'Failed to search for numbers')
     } finally {
       setSearching(false)
@@ -204,9 +218,9 @@ export function AddNumberDialog({ open, onClose, onSuccess }: AddNumberDialogPro
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Buy phone number</DialogTitle>
-          <p className="text-sm text-muted-foreground">
+          <DialogDescription>
             Select your country and optionally add a pattern
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -271,6 +285,13 @@ export function AddNumberDialog({ open, onClose, onSuccess }: AddNumberDialogPro
             {searchError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
                 {searchError}
+              </div>
+            )}
+
+            {/* Success indicator */}
+            {!searching && !searchError && availableNumbers.length > 0 && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-md text-green-700 text-sm font-medium">
+                ✅ Found {availableNumbers.length} available phone numbers
               </div>
             )}
           </div>

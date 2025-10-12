@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useBusinessNumbersService } from '@/components/providers/service-provider'
-import { useAuth } from '@/components/providers/supabase-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 import { BusinessNumberWithBusiness, NumberUsageStats } from '@/lib/types/database/numbers.types'
 import { AddNumberDialog } from './components/AddNumberDialog'
 import { EditNumberDialog } from './components/EditNumberDialog'
@@ -27,6 +27,7 @@ export default function NumbersPage() {
   const [stats, setStats] = useState<NumberUsageStats | null>(null)
   const [availableBalance, setAvailableBalance] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [editingNumber, setEditingNumber] = useState<BusinessNumberWithBusiness | null>(null)
   const [deletingNumber, setDeletingNumber] = useState<BusinessNumberWithBusiness | null>(null)
@@ -45,6 +46,7 @@ export default function NumbersPage() {
   const loadData = async () => {
     try {
       setLoading(true)
+      setError(null)
       const [numbersData, statsData, balanceData] = await Promise.all([
         businessNumbersService.getAllNumbersByUserId(userId),
         businessNumbersService.getUsageStatistics(userId),
@@ -53,8 +55,13 @@ export default function NumbersPage() {
       setNumbers(numbersData)
       setStats(statsData)
       setAvailableBalance(balanceData)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading numbers data:', error)
+      const errorMessage = error?.message || 'Failed to load phone numbers. Please try again.'
+      setError(errorMessage)
+      // Set empty data on error to prevent showing stale data
+      setNumbers([])
+      setStats(null)
     } finally {
       setLoading(false)
     }
@@ -62,11 +69,17 @@ export default function NumbersPage() {
 
   const fetchWalletBalance = async (): Promise<number> => {
     try {
-      const response = await fetch('/api/wallet/balance')
+      const response = await fetch('/api/wallet/balance', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
       if (response.ok) {
         const data = await response.json()
         return data.balance_usd || 0
       }
+      console.warn('Wallet balance fetch failed with status:', response.status)
       return 0
     } catch (error) {
       console.error('Error fetching wallet balance:', error)
@@ -118,6 +131,24 @@ export default function NumbersPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-red-800 mb-1">Error Loading Phone Numbers</h3>
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadData}
+            className="shrink-0"
+          >
+            Try Again
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
