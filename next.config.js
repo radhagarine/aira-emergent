@@ -9,6 +9,15 @@ const nextConfig = {
       'googleusercontent.com'
     ],
   },
+  experimental: {
+    // Increase server timeout to handle slow Supabase queries
+    serverComponentsExternalPackages: ['@supabase/supabase-js'],
+  },
+  // Increase timeout for undici (Node 24 compatibility)
+  serverRuntimeConfig: {
+    connectTimeout: 60000,
+    keepAliveTimeout: 65000,
+  },
 }
 
 module.exports = nextConfig
