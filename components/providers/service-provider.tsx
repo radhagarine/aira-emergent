@@ -69,13 +69,15 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
   const supabaseContext = useSupabase();
   const supabaseClient = supabaseClientOverride || supabaseContext.supabase;
 
-  console.log('[ServiceProvider] Creating repository factory with client');
-  // Initialize repository factory with supabase client if provided
-  const repositoryFactory = repositoryFactoryOverride || 
-    (supabaseClient ? RepositoryFactory.createWithClient(supabaseClient) : RepositoryFactory.getInstance());
-  console.log('[ServiceProvider] Repository factory created successfully');
-  
-  
+  // Memoize repository factory to prevent infinite re-creation
+  const repositoryFactory = React.useMemo(() => {
+    console.log('[ServiceProvider] Creating repository factory with client');
+    const factory = repositoryFactoryOverride ||
+      (supabaseClient ? RepositoryFactory.createWithClient(supabaseClient) : RepositoryFactory.getInstance());
+    console.log('[ServiceProvider] Repository factory created successfully');
+    return factory;
+  }, [supabaseClient, repositoryFactoryOverride]);
+
   // Initialize or use provided service instances
   const services = React.useMemo(() => {
     // Create services with repository factory
@@ -191,10 +193,12 @@ export const EnhancedServiceProvider: React.FC<EnhancedServiceProviderProps> = (
   const supabaseContext = useSupabase();
   const supabaseClient = supabaseClientOverride || supabaseContext.supabase;
 
-  // Initialize repository factory with supabase client if provided
-  const repositoryFactory = repositoryFactoryOverride || 
-    (supabaseClient ? RepositoryFactory.createWithClient(supabaseClient) : RepositoryFactory.getInstance());
-  
+  // Memoize repository factory to prevent infinite re-creation
+  const repositoryFactory = React.useMemo(() => {
+    return repositoryFactoryOverride ||
+      (supabaseClient ? RepositoryFactory.createWithClient(supabaseClient) : RepositoryFactory.getInstance());
+  }, [supabaseClient, repositoryFactoryOverride]);
+
   // Initialize or use provided service instances
   const services = React.useMemo(() => {
     return {
