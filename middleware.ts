@@ -18,18 +18,6 @@ export async function middleware(req: NextRequest) {
       error,
     } = await supabase.auth.getSession()
 
-    console.log('Middleware - Current path:', req.nextUrl.pathname)
-    console.log('Middleware - Request origin:', req.nextUrl.origin)
-    console.log('Middleware - NODE_ENV:', process.env.NODE_ENV)
-    console.log('Middleware - NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL)
-    console.log('Middleware - Is Production:', isProduction)
-    console.log('Middleware - Final Site URL:', siteUrl)
-    console.log('Middleware - Session exists:', !!session)
-
-     // Check if cookies exist
-    const allCookies = req.cookies.getAll()
-    //console.log('Cookies present:', allCookies.map(c => c.name))
-
     if (error) {
       console.error('Middleware session error:', error)
       return NextResponse.redirect(new URL('/', siteUrl))

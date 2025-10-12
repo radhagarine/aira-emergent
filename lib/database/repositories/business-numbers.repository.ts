@@ -13,7 +13,7 @@ import {
 import { DatabaseError } from '@/lib/types/shared/error.types';
 
 export class BusinessNumbersRepository implements IBusinessNumbersRepository {
-  private readonly tableName = 'business_numbers_v2';
+  private readonly tableName = 'business_numbers';
 
   constructor(
     private readonly supabase: SupabaseClient,

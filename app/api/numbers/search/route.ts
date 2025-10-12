@@ -6,6 +6,7 @@ import { TwilioNumberSearchParams } from '@/lib/services/twilio/types';
 import { BusinessNumberType } from '@/lib/types/database/numbers.types';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60; // Allow up to 60 seconds for Twilio API
 
 /**
  * POST /api/numbers/search
