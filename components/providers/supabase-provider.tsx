@@ -164,6 +164,3 @@ export const useSupabase = () => {
 
 // Custom hook to use auth
 export const useAuth = () => useContext(AuthContext)
-
-// Re-export getSupabaseInstance for backwards compatibility
-export { getSupabaseInstance }
