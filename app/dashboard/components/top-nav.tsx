@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { Bell, Settings, LogOut, ChevronRight, Home, Menu, Wallet } from 'lucide-react'
 import { User2 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { useAuth } from '@/components/providers/supabase-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 import {
@@ -24,9 +24,12 @@ interface TopNavProps {
 
 export const TopNav: FC<TopNavProps> = ({ onMenuClick }) => {
   const pathname = usePathname()
-  const { user, userName, signOut } = useAuth()
+  const { user, signOut } = useAuth()
   const [imageError, setImageError] = useState(false)
-  
+
+  // Get user name from user metadata or email
+  const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'
+
   // Get avatar URL from user metadata
   const userAvatar = user?.user_metadata?.picture || user?.user_metadata?.avatar_url
 

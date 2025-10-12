@@ -62,7 +62,7 @@ export interface BusinessNumberUpdate {
   provider?: string | null;
   purchase_date?: string | null;
   monthly_cost?: number | null;
-  features?: string | null;
+  features?: string[] | null;
   notes?: string | null;
   // Twilio-specific fields
   twilio_sid?: string | null;

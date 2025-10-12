@@ -123,7 +123,7 @@ export class ServiceFactory {
    */
   public getTwilioService(): TwilioService {
     if (!this.twilioService) {
-      this.twilioService = new TwilioService();
+      this.twilioService = TwilioService.getInstance();
     }
     return this.twilioService;
   }
@@ -133,7 +133,7 @@ export class ServiceFactory {
    */
   public getTwilioNumbersService(): TwilioNumbersService {
     if (!this.twilioNumbersService) {
-      this.twilioNumbersService = new TwilioNumbersService();
+      this.twilioNumbersService = TwilioNumbersService.getInstance();
     }
     return this.twilioNumbersService;
   }

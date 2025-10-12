@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/components/providers/supabase-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 import { Loader2 } from 'lucide-react'
 
 export default function AuthCheck({ children }: { children: React.ReactNode }) {

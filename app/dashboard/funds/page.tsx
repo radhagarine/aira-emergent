@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Plus, CreditCard, DollarSign, TrendingUp, Clock, CheckCircle, X, Loader2 } from 'lucide-react'
-import { useAuth } from '@/components/providers/supabase-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {

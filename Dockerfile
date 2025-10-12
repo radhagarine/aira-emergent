@@ -17,7 +17,7 @@ RUN npm ci
 COPY . .
 
 # Copy the .env.local file
-COPY env.prod .env.local
+COPY .env.local .env.local
 
 # Build the Next.js application
 RUN npm run build
@@ -34,7 +34,7 @@ RUN npm install -D \
 EXPOSE 3000
 
 # Set the environment variable for production
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 # Create a volume for test results (optional)
 VOLUME ["/app/coverage"]
