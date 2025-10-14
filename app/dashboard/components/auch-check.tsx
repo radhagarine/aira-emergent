@@ -1,32 +1,30 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
 import { Loader2 } from 'lucide-react'
 
 export default function AuthCheck({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
-  const initialCheckDone = useRef(false)
+  const [mounted, setMounted] = useState(false)
 
+  // Mark as mounted on client side
   useEffect(() => {
-    // Wait a bit to ensure auth state is properly initialized
-    const timer = setTimeout(() => {
-      if (!initialCheckDone.current) {
-        if (user === null) {
-          router.push('/auth/login')
-        }
-        setIsLoading(false)
-        initialCheckDone.current = true
-      }
-    }, 1000)
+    setMounted(true)
+  }, [])
 
-    return () => clearTimeout(timer)
-  }, [user, router])
+  // Redirect to login if not authenticated after loading is complete
+  useEffect(() => {
+    if (mounted && !authLoading && !user) {
+      console.log('[AuthCheck] No user found, redirecting to login')
+      router.push('/auth/login')
+    }
+  }, [mounted, authLoading, user, router])
 
-  if (isLoading) {
+  // Show loading state while checking auth
+  if (!mounted || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
@@ -37,9 +35,11 @@ export default function AuthCheck({ children }: { children: React.ReactNode }) {
     )
   }
 
+  // Don't render anything while redirecting
   if (!user) {
     return null
   }
 
+  // Render children if authenticated
   return <>{children}</>
 }

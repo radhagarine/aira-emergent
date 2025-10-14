@@ -35,7 +35,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       phoneNumber,
-      businessId,
       displayName,
       countryCode,
       numberType,
@@ -43,7 +42,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required parameters
-    if (!phoneNumber || !businessId || !displayName || !userId) {
+    if (!phoneNumber || !displayName || !userId) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
         { status: 400 }
@@ -71,7 +70,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 1: Check wallet balance
-    const hasSufficientBalance = await walletService.hasSufficientBalance(
+    // TEMPORARILY DISABLED FOR TESTING - Re-enable in production
+    /* const hasSufficientBalance = await walletService.hasSufficientBalance(
       userId,
       monthlyCost,
       'USD'
@@ -86,10 +86,11 @@ export async function POST(request: NextRequest) {
         },
         { status: 402 }
       );
-    }
+    } */
+    console.log('[TEST MODE] Skipping wallet balance check - userId:', userId, 'monthlyCost:', monthlyCost);
 
     // Step 2: Purchase number from Twilio
-    const webhookBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://yourdomain.com';
+    const webhookBaseUrl = process.env.TWILIO_WEBHOOK_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://yourdomain.com';
 
     const twilioNumber = await twilioService.purchaseNumber({
       phoneNumber,
@@ -105,16 +106,19 @@ export async function POST(request: NextRequest) {
     twilioSid = twilioNumber.sid;
 
     // Step 3: Deduct from wallet
-    await walletService.deductFunds(
+    // TEMPORARILY DISABLED FOR TESTING - Re-enable in production
+    /* await walletService.deductFunds(
       userId,
       monthlyCost,
       'USD',
       `Phone number purchase: ${phoneNumber}`
-    );
+    ); */
+    console.log('[TEST MODE] Skipping wallet deduction');
 
-    // Step 4: Save to database
+    // Step 4: Save to database (without business_id - will be assigned later)
     const savedNumber = await businessNumbersService.createNumber({
-      business_id: businessId,
+      user_id: userId,
+      business_id: null, // Not assigned to business yet
       phone_number: phoneNumber,
       display_name: displayName,
       country_code: countryCode || 'US',

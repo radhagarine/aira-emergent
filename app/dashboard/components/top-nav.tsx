@@ -38,12 +38,12 @@ export const TopNav: FC<TopNavProps> = ({ onMenuClick }) => {
     const segments = pathname.split('/').filter(Boolean)
     return [
       { name: 'Home', href: '/' },
-      { name: 'Dashboard', href: '/dashboard/overview' },
-      ...(segments.length > 1 
-        ? [{ 
-            name: segments[segments.length - 1].charAt(0).toUpperCase() + segments[segments.length - 1].slice(1), 
-            href: pathname 
-          }] 
+      { name: 'Dashboard', href: '/dashboard' },
+      ...(segments.length > 1
+        ? [{
+            name: segments[segments.length - 1].charAt(0).toUpperCase() + segments[segments.length - 1].slice(1),
+            href: pathname
+          }]
         : []
       )
     ]

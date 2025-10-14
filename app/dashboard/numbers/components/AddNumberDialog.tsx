@@ -12,11 +12,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useBusinessService } from '@/components/providers/service-provider'
 import { useAuth } from '@/components/providers/auth-provider'
 import { BusinessNumberType } from '@/lib/types/database/numbers.types'
-import { BusinessResponse } from '@/lib/services/business/types'
 import { toast } from 'sonner'
 
 interface AddNumberDialogProps {
@@ -27,22 +24,18 @@ interface AddNumberDialogProps {
 }
 
 export function AddNumberDialog({ open, onClose, onSuccess, initialPhoneNumber }: AddNumberDialogProps) {
-  const businessService = useBusinessService()
   const { user } = useAuth()
 
   // Purchase state
   const [phoneNumber, setPhoneNumber] = useState('')
   const [purchasing, setPurchasing] = useState(false)
   const [purchaseError, setPurchaseError] = useState('')
-  const [businesses, setBusinesses] = useState<BusinessResponse[]>([])
-  const [selectedBusiness, setSelectedBusiness] = useState('')
   const [displayName, setDisplayName] = useState('')
 
   const userId = user?.id || ''
 
   useEffect(() => {
     if (open) {
-      loadBusinesses()
       // Set phone number if provided
       if (initialPhoneNumber) {
         setPhoneNumber(initialPhoneNumber)
@@ -52,26 +45,9 @@ export function AddNumberDialog({ open, onClose, onSuccess, initialPhoneNumber }
     }
   }, [open, initialPhoneNumber])
 
-  const loadBusinesses = async () => {
-    try {
-      const businessData = await businessService.getBusinessProfile(userId)
-      setBusinesses(businessData)
-      if (businessData.length > 0) {
-        setSelectedBusiness(businessData[0].id)
-      }
-    } catch (error) {
-      console.error('Error loading businesses:', error)
-    }
-  }
-
   const handlePurchase = async () => {
     if (!phoneNumber) {
       setPurchaseError('Please select a phone number')
-      return
-    }
-
-    if (!selectedBusiness) {
-      setPurchaseError('Please select a business')
       return
     }
 
@@ -89,7 +65,6 @@ export function AddNumberDialog({ open, onClose, onSuccess, initialPhoneNumber }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phoneNumber: phoneNumber,
-          businessId: selectedBusiness,
           displayName,
           countryCode: 'US',
           numberType: BusinessNumberType.LOCAL,
@@ -143,23 +118,6 @@ export function AddNumberDialog({ open, onClose, onSuccess, initialPhoneNumber }
             />
           </div>
 
-          {/* Business Selection */}
-          <div>
-            <Label>Business</Label>
-            <Select value={selectedBusiness} onValueChange={setSelectedBusiness}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select business" />
-              </SelectTrigger>
-              <SelectContent>
-                {businesses.map((business) => (
-                  <SelectItem key={business.id} value={business.id}>
-                    {business.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Display Name */}
           <div>
             <Label>Display Name</Label>
@@ -186,7 +144,7 @@ export function AddNumberDialog({ open, onClose, onSuccess, initialPhoneNumber }
             </Button>
             <Button
               onClick={handlePurchase}
-              disabled={purchasing || !displayName || !selectedBusiness || !phoneNumber}
+              disabled={purchasing || !displayName || !phoneNumber}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {purchasing ? 'Purchasing...' : 'Purchase number'}

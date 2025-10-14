@@ -2,7 +2,8 @@
 
 export interface BusinessNumberRow {
   id: string;
-  business_id: string;
+  user_id: string;
+  business_id: string | null; // Nullable - number can be unassigned
   phone_number: string;
   display_name: string;
   country_code: string;
@@ -27,7 +28,8 @@ export interface BusinessNumberRow {
 
 export interface BusinessNumberInsert {
   id?: string;
-  business_id: string;
+  user_id: string;
+  business_id?: string | null; // Optional - can be null for unassigned numbers
   phone_number: string;
   display_name: string;
   country_code: string;
@@ -52,7 +54,8 @@ export interface BusinessNumberInsert {
 
 export interface BusinessNumberUpdate {
   id?: string;
-  business_id?: string;
+  user_id?: string;
+  business_id?: string | null;
   phone_number?: string;
   display_name?: string;
   country_code?: string;

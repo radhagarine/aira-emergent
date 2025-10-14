@@ -33,7 +33,8 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
       }
 
       // If this is set as primary, ensure no other number is primary for this business
-      if (data.is_primary) {
+      // Only check if business_id is provided (number is assigned to a business)
+      if (data.is_primary && data.business_id) {
         const existingPrimary = await this.numbersRepository.getPrimaryByBusinessId(data.business_id);
         if (existingPrimary) {
           await this.numbersRepository.update(existingPrimary.id, { is_primary: false });
@@ -46,7 +47,10 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
         updated_at: new Date().toISOString()
       });
 
-      this.clearCacheForBusiness(data.business_id);
+      // Only clear business cache if number is assigned to a business
+      if (data.business_id) {
+        this.clearCacheForBusiness(data.business_id);
+      }
       return result;
     } catch (error) {
       console.error('Error creating business number:', error);
@@ -87,7 +91,8 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
       }
 
       // If setting as primary, unset others for the same business
-      if (data.is_primary && !current.is_primary) {
+      // Only if the number is assigned to a business
+      if (data.is_primary && !current.is_primary && current.business_id) {
         await this.setPrimaryNumber(id, current.business_id);
         return await this.numbersRepository.getById(id) as BusinessNumberRow;
       }
@@ -97,7 +102,10 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
         updated_at: new Date().toISOString()
       });
 
-      this.clearCacheForBusiness(current.business_id);
+      // Only clear business cache if number is assigned to a business
+      if (current.business_id) {
+        this.clearCacheForBusiness(current.business_id);
+      }
       this.clearCache(`business_number_${id}`);
       return result;
     } catch (error) {
@@ -113,8 +121,9 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
         throw new Error('Business number not found');
       }
 
-      // Don't allow deletion of primary numbers if there are other numbers
-      if (current.is_primary) {
+      // Don't allow deletion of primary numbers if there are other numbers for the same business
+      // Only check if number is assigned to a business
+      if (current.is_primary && current.business_id) {
         const businessNumbers = await this.numbersRepository.getByBusinessId(current.business_id);
         if (businessNumbers.length > 1) {
           throw new Error('Cannot delete primary number. Please set another number as primary first.');
@@ -122,7 +131,10 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
       }
 
       await this.numbersRepository.delete(id);
-      this.clearCacheForBusiness(current.business_id);
+      // Only clear business cache if number is assigned to a business
+      if (current.business_id) {
+        this.clearCacheForBusiness(current.business_id);
+      }
       this.clearCache(`business_number_${id}`);
     } catch (error) {
       console.error('Error deleting business number:', error);
@@ -195,13 +207,16 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
         throw new Error('Business number not found');
       }
 
-      // Don't allow deactivating primary numbers
-      if (current.is_primary && current.is_active) {
+      // Don't allow deactivating primary numbers (only if assigned to a business)
+      if (current.is_primary && current.is_active && current.business_id) {
         throw new Error('Cannot deactivate primary number. Please set another number as primary first.');
       }
 
       const result = await this.numbersRepository.toggleActive(id);
-      this.clearCacheForBusiness(current.business_id);
+      // Only clear business cache if number is assigned to a business
+      if (current.business_id) {
+        this.clearCacheForBusiness(current.business_id);
+      }
       this.clearCache(`business_number_${id}`);
       return result;
     } catch (error) {
@@ -293,7 +308,10 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
           updated_at: new Date().toISOString()
         });
         results.push(result);
-        businessIds.add(result.business_id);
+        // Only add to set if business_id is not null
+        if (result.business_id) {
+          businessIds.add(result.business_id);
+        }
       }
 
       // Clear cache for all affected businesses

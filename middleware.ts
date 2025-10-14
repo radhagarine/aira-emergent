@@ -7,40 +7,30 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
 
-  // Use environment variable for site URL with production fallback
-  const isProduction = process.env.NODE_ENV === 'production'
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                  (isProduction ? 'https://aira.aivn.ai' : req.nextUrl.origin)
-
   try {
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession()
+    // Refresh session if expired
+    await supabase.auth.getSession()
 
-    if (error) {
-      console.error('Middleware session error:', error)
-      return NextResponse.redirect(new URL('/', siteUrl))
-    }
-
-    // If trying to access a protected route but no session exists
-    if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-      console.log('No session, redirecting from dashboard to home')
-      return NextResponse.redirect(new URL('/', siteUrl))
-    }
-
-    // If signed in and trying to access auth pages
-    /* if (session && req.nextUrl.pathname === '/') {
-      return NextResponse.redirect(new URL('/dashboard', siteUrl))
-    } */
+    // If trying to access a protected route, check auth on client side
+    // Middleware will just refresh the session, not redirect
+    // This prevents redirect loops and allows client-side auth checks to work properly
 
     return res
   } catch (error) {
-    console.error('Middleware error:', error)
-    return NextResponse.redirect(new URL('/', siteUrl))
+    console.error('[Middleware] Error:', error)
+    return res
   }
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*']
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (public folder)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ]
 }
