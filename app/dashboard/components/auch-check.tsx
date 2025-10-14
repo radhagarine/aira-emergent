@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
 import { Loader2 } from 'lucide-react'
@@ -9,6 +9,7 @@ export default function AuthCheck({ children }: { children: React.ReactNode }) {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const redirectedRef = useRef(false)
 
   // Mark as mounted on client side
   useEffect(() => {
@@ -17,9 +18,11 @@ export default function AuthCheck({ children }: { children: React.ReactNode }) {
 
   // Redirect to login if not authenticated after loading is complete
   useEffect(() => {
-    if (mounted && !authLoading && !user) {
+    if (mounted && !authLoading && !user && !redirectedRef.current) {
       console.log('[AuthCheck] No user found, redirecting to login')
-      router.push('/auth/login')
+      redirectedRef.current = true
+      // Use replace instead of push to avoid adding to history
+      router.replace('/auth/login')
     }
   }, [mounted, authLoading, user, router])
 
@@ -37,7 +40,14 @@ export default function AuthCheck({ children }: { children: React.ReactNode }) {
 
   // Don't render anything while redirecting
   if (!user) {
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+          <p className="text-sm text-gray-500">Redirecting...</p>
+        </div>
+      </div>
+    )
   }
 
   // Render children if authenticated

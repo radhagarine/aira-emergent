@@ -27,12 +27,8 @@ export default function LoginPage() {
   const { supabase } = useSupabase()
   const router = useRouter()
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (user) {
-      router.push('/dashboard')
-    }
-  }, [user, router])
+  // Note: We don't auto-redirect if user exists here because it can cause
+  // redirect loops with stale sessions. Let the user explicitly log in.
 
   // Email/Password login handler
   const handleEmailLogin = async (e: React.FormEvent) => {
