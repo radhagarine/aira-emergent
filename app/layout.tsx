@@ -3,6 +3,7 @@ import './globals.css'
 import { Inter } from 'next/font/google'
 import { cn } from "@/lib/utils"  // Make sure you have this utility
 import { SupabaseProvider } from '@/components/providers/supabase-provider'
+import { AuthProvider } from '@/components/providers/auth-provider'
 import { Chatbot } from '@/components/ui/chatbot'
 import type { Metadata } from 'next'
 
@@ -63,8 +64,10 @@ export default function RootLayout({
         )}
       >
         <SupabaseProvider>
-        {children}
-        <Chatbot />
+          <AuthProvider>
+            {children}
+            <Chatbot />
+          </AuthProvider>
         </SupabaseProvider>
       </body>
     </html>

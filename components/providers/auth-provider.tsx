@@ -1,3 +1,5 @@
+'use client';
+
 // src/components/providers/auth-provider.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useSupabase } from './supabase-provider';
@@ -9,6 +11,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null; data: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
@@ -89,11 +92,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email,
         password
       });
-      
+
       return { error };
     } catch (error) {
       return { error: error as Error };
     }
+  };
+
+  // Sign in with Google OAuth
+  const signInWithGoogle = async () => {
+    try {
+      // Get appropriate redirect URL for current environment
+      const redirectUrl = getRedirectUrl();
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl
+        }
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+      throw error;
+    }
+  };
+
+  // Helper to get redirect URL based on environment
+  const getRedirectUrl = () => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/auth/callback`;
+    }
+
+    // When not in browser, use the environment variable if available
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+      return `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
+    }
+
+    // Fallback
+    return 'https://aira.aivn.ai/auth/callback';
   };
 
   // Sign up with email and password
@@ -141,6 +178,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     session,
     isLoading,
     signIn,
+    signInWithGoogle,
     signUp,
     signOut,
     resetPassword

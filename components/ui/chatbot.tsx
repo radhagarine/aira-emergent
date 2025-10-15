@@ -50,23 +50,28 @@ export function Chatbot({ className }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(false)
   const audioContextRef = useRef<AudioContext | null>(null)
 
-  // Initialize audio context
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
+  // Lazy initialize audio context only when needed (memory optimization)
+  const getAudioContext = () => {
+    if (!audioContextRef.current && typeof window !== 'undefined') {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
     }
+    return audioContextRef.current
+  }
+
+  // Cleanup audio context on unmount
+  useEffect(() => {
     return () => {
       if (audioContextRef.current) {
         audioContextRef.current.close()
+        audioContextRef.current = null
       }
     }
   }, [])
 
   // Play notification sound
   const playNotificationSound = () => {
-    if (!audioContextRef.current) return
-
-    const ctx = audioContextRef.current
+    const ctx = getAudioContext()
+    if (!ctx) return
     const oscillator = ctx.createOscillator()
     const gainNode = ctx.createGain()
 

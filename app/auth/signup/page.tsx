@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Loader2, UserPlus, Mail, Lock, User, ArrowLeft } from 'lucide-react'
-import { useAuth } from '@/components/providers/supabase-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 import { useSupabase } from '@/components/providers/supabase-provider'
 import { AuthVideoLogo } from '@/components/ui/video-logo'
 
@@ -27,7 +27,7 @@ export default function SignupPage() {
   const [emailLoading, setEmailLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  const { signIn } = useAuth()
+  const { signInWithGoogle, signUp } = useAuth()
   const { supabase } = useSupabase()
   const router = useRouter()
 
@@ -55,19 +55,11 @@ export default function SignupPage() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          }
-        }
-      })
+      const { error, data } = await signUp(email, password)
 
       if (error) throw error
 
-      if (data.user) {
+      if (data) {
         setSuccess('Account created successfully! Please check your email to verify your account.')
         // Clear form
         setEmail('')
@@ -89,7 +81,7 @@ export default function SignupPage() {
     setError('')
 
     try {
-      await signIn()
+      await signInWithGoogle()
     } catch (err) {
       setError('Google sign-up failed. Please try again.')
       setGoogleLoading(false)

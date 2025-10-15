@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useNavigation } from "@/hooks/use-navigation"
-import { useAuth } from "@/components/providers/supabase-provider"
+import { useAuth } from "@/components/providers/auth-provider"
 
 interface NavLinksProps {
   scrolled?: boolean;

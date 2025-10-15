@@ -3,11 +3,11 @@
 import { useEffect, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { HeroMedia } from "./hero-media"
-import { useAuth } from '@/components/providers/supabase-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 
 export function Hero() {
   const [showContent, setShowContent] = useState(false)
-  const { signIn } = useAuth()
+  const { signInWithGoogle } = useAuth()
 
   const handleVideoLoad = useCallback((video: HTMLVideoElement) => {
     if (!video) return
@@ -87,7 +87,7 @@ export function Hero() {
                             shadow-2xl hover:shadow-[#8B0000]/50 w-full sm:w-auto"
                   onClick={(e) => {
                     e.stopPropagation()
-                    signIn()
+                    signInWithGoogle()
                   }}
                 >
                   <span className="flex items-center justify-center gap-2">

@@ -154,3 +154,13 @@ Schema changes should be made through Supabase migrations. Use `npm run db:diff`
 
 ### Environment Setup
 Copy `.env.example` to `.env.local` and configure Supabase credentials. The application requires `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` at minimum.
+
+### Documentation Guidelines
+**IMPORTANT:** When creating documentation files:
+- **NEVER** create `.md` files in the project root directory (except README.md)
+- **ALWAYS** place documentation in the appropriate `docs/` subdirectory:
+  - `docs/performance/` - Performance optimization guides
+  - `docs/twilio/` - Twilio integration documentation
+  - `docs/wallet/` - Wallet and payment documentation
+  - `docs/` - General architecture and integration docs
+- Keep the root directory clean - only `README.md` and `CLAUDE.md` should exist there

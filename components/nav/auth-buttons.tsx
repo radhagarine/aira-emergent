@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { useAuth } from '@/components/providers/supabase-provider';
+import { useAuth } from '@/components/providers/auth-provider';
 import { User2 } from 'lucide-react';
 import { BookingDialog } from '@/components/booking-dialog';
 

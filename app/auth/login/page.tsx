@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Loader2, LogIn, Mail, Lock, ArrowLeft } from 'lucide-react'
-import { useAuth } from '@/components/providers/supabase-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 import { useSupabase } from '@/components/providers/supabase-provider'
 import { AuthVideoLogo } from '@/components/ui/video-logo'
 
@@ -23,7 +23,7 @@ export default function LoginPage() {
   const [emailLoading, setEmailLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  const { user, signIn } = useAuth()
+  const { user, signIn, signInWithGoogle } = useAuth()
   const { supabase } = useSupabase()
   const router = useRouter()
 
@@ -38,16 +38,11 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      const { error } = await signIn(email, password)
 
       if (error) throw error
 
-      if (data.user) {
-        router.push('/dashboard')
-      }
+      router.push('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Failed to sign in. Please check your credentials.')
     }
@@ -62,7 +57,7 @@ export default function LoginPage() {
     setError('')
 
     try {
-      await signIn()
+      await signInWithGoogle()
     } catch (err) {
       setError('Google sign-in failed. Please try again.')
       setGoogleLoading(false)

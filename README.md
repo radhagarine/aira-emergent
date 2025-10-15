@@ -215,10 +215,10 @@ docker-compose run app npm run test:coverage
 
 ```bash
 # Build production image with no cache
-docker build --no-cache -t aira-platformauth .
+docker build --no-cache -t aira-ai .
 
 # Run production container
-docker run -p 3000:3000 aira-platformauth
+docker run -p 3000:3000 aira-ai
 
 # Alternative approach with named image
 docker build -t business-management-system:latest .
