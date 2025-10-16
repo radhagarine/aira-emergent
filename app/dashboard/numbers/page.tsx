@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,6 +24,11 @@ export default function NumbersPage() {
   const { user } = useAuth()
   const [numbers, setNumbers] = useState<BusinessNumberWithBusiness[]>([])
   const [stats, setStats] = useState<NumberUsageStats | null>(null)
+
+  // Debug: Log whenever numbers state changes
+  useEffect(() => {
+    console.log('[NumbersPage] numbers state updated:', numbers.length, 'numbers')
+  }, [numbers])
   const [availableBalance, setAvailableBalance] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -35,40 +40,7 @@ export default function NumbersPage() {
 
   const userId = user?.id || ''
 
-  useEffect(() => {
-    if (userId) {
-      loadData()
-    } else {
-      // If user not ready yet, don't block the page
-      setLoading(false)
-    }
-  }, [userId])
-
-  const loadData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const [numbersData, statsData, balanceData] = await Promise.all([
-        businessNumbersService.getAllNumbersByUserId(userId),
-        businessNumbersService.getUsageStatistics(userId),
-        fetchWalletBalance()
-      ])
-      setNumbers(numbersData)
-      setStats(statsData)
-      setAvailableBalance(balanceData)
-    } catch (error: any) {
-      console.error('Error loading numbers data:', error)
-      const errorMessage = error?.message || 'Failed to load phone numbers. Please try again.'
-      setError(errorMessage)
-      // Set empty data on error to prevent showing stale data
-      setNumbers([])
-      setStats(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchWalletBalance = async (): Promise<number> => {
+  const fetchWalletBalance = useCallback(async (): Promise<number> => {
     try {
       const response = await fetch('/api/wallet/balance', {
         credentials: 'include',
@@ -86,7 +58,82 @@ export default function NumbersPage() {
       console.error('Error fetching wallet balance:', error)
       return 0
     }
-  }
+  }, [])
+
+  const loadData = useCallback(async () => {
+    console.log('[NumbersPage] ========================================')
+    console.log('[NumbersPage] loadData called - userId:', userId)
+    console.log('[NumbersPage] user object:', user)
+    console.log('[NumbersPage] user.id:', user?.id)
+    console.log('[NumbersPage] userId matches user.id:', userId === user?.id)
+    console.log('[NumbersPage] ========================================')
+
+    if (!userId) {
+      console.log('[NumbersPage] No userId, skipping load')
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      console.log('[NumbersPage] Fetching data for userId:', userId)
+
+      // Call services one by one to see which one is causing the issue
+      console.log('[NumbersPage] Step 1: Getting numbers...')
+      const numbersData = await businessNumbersService.getAllNumbersByUserId(userId)
+      console.log('[NumbersPage] Step 1 RESULT - numbersData:', numbersData)
+      console.log('[NumbersPage] Step 1 RESULT - numbersData type:', Array.isArray(numbersData) ? 'array' : typeof numbersData)
+      console.log('[NumbersPage] Step 1 RESULT - numbersData length:', numbersData?.length)
+      console.log('[NumbersPage] Step 1 RESULT - numbersData JSON:', JSON.stringify(numbersData, null, 2))
+
+      console.log('[NumbersPage] Step 2: Getting stats...')
+      const statsData = await businessNumbersService.getUsageStatistics(userId)
+      console.log('[NumbersPage] Step 2 RESULT - statsData:', statsData)
+
+      console.log('[NumbersPage] Step 3: Getting balance...')
+      const balanceData = await fetchWalletBalance()
+      console.log('[NumbersPage] Step 3 RESULT - balanceData:', balanceData)
+
+      console.log('[NumbersPage] ALL DATA received:', {
+        numbersCount: numbersData?.length,
+        numbersType: Array.isArray(numbersData) ? 'array' : typeof numbersData,
+        numbersData: numbersData,
+        stats: statsData,
+        balance: balanceData
+      })
+
+      // Ensure numbersData is an array
+      const validNumbers = Array.isArray(numbersData) ? numbersData : []
+      console.log('[NumbersPage] ABOUT TO SET STATE with:', validNumbers.length, 'items')
+      console.log('[NumbersPage] validNumbers array:', validNumbers)
+
+      console.log('[NumbersPage] Calling setNumbers...')
+      setNumbers(validNumbers)
+      console.log('[NumbersPage] Calling setStats...')
+      setStats(statsData)
+      console.log('[NumbersPage] Calling setAvailableBalance...')
+      setAvailableBalance(balanceData)
+      console.log('[NumbersPage] All state set complete')
+    } catch (error: any) {
+      console.error('[NumbersPage] Error loading numbers data:', error)
+      const errorMessage = error?.message || 'Failed to load phone numbers. Please try again.'
+      setError(errorMessage)
+      // Set empty data on error to prevent showing stale data
+      setNumbers([])
+      setStats(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [userId, businessNumbersService, fetchWalletBalance])
+
+  useEffect(() => {
+    if (userId) {
+      loadData()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]) // Only re-run when userId changes, not when loadData changes
 
   const formatPhoneNumber = (phoneNumber: string) => {
     // Simple formatting for display

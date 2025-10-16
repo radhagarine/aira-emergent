@@ -74,19 +74,24 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
   repositoryFactoryOverride,
   supabaseClientOverride
 }) => {
-  // Memoize repository factory to prevent infinite re-creation
-  // Use singleton getInstance instead of creating new instances
-  const repositoryFactory = React.useMemo(() => {
-    if (repositoryFactoryOverride) {
-      return repositoryFactoryOverride;
-    }
-    // Always use singleton instance to prevent memory leaks
-    return RepositoryFactory.getInstance();
-  }, [repositoryFactoryOverride]);
+  // Use ref to ensure we keep the same factory instance across renders
+  const factoryRef = React.useRef<RepositoryFactory | null>(null);
 
-  // Initialize or use provided service instances
-  const services = React.useMemo(() => {
-    return {
+  // Initialize factory only once
+  if (!factoryRef.current) {
+    factoryRef.current = repositoryFactoryOverride || RepositoryFactory.getInstance();
+    console.log('[ServiceProvider] RepositoryFactory initialized');
+  }
+
+  const repositoryFactory = factoryRef.current;
+
+  // Use refs to ensure we keep the same service instances across renders
+  const servicesRef = React.useRef<ServiceContextType | null>(null);
+
+  // Initialize services only once
+  if (!servicesRef.current) {
+    console.log('[ServiceProvider] Initializing all services');
+    servicesRef.current = {
       businessService: businessServiceOverride || new BusinessService(repositoryFactory),
       appointmentService: appointmentServiceOverride || new AppointmentService(repositoryFactory),
       fileService: fileServiceOverride || new FileService(repositoryFactory),
@@ -97,18 +102,13 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
       reloadServices: () => {
         // Reset repository factory cache
         repositoryFactory.reset();
+        // Force recreation of services on next access
+        servicesRef.current = null;
       }
     };
-  }, [
-    repositoryFactory,
-    businessServiceOverride,
-    appointmentServiceOverride,
-    fileServiceOverride,
-    businessNumbersServiceOverride,
-    restaurantServiceOverride,
-    retailServiceOverride,
-    serviceBusinessServiceOverride
-  ]);
+  }
+
+  const services = servicesRef.current;
 
   return (
     <ServiceContext.Provider value={services}>

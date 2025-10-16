@@ -40,7 +40,6 @@ export class RepositoryFactory {
 
   public static getInstance(): RepositoryFactory {
     if (!RepositoryFactory.instance) {
-      // Use the same Supabase singleton as the provider to prevent memory leaks
       const client = getSupabaseInstance();
       RepositoryFactory.instance = new RepositoryFactory(client);
     }

@@ -1,11 +1,7 @@
 'use client'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useRouter } from 'next/navigation'
-import { createContext, useContext, useEffect, useState } from 'react'
-import type { User, SupabaseClient } from '@supabase/supabase-js'
+import { createContext, useContext, useEffect } from 'react'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database/database.types'
-
-// Import the central Supabase singleton
 import { getSupabaseInstance } from '@/lib/supabase/client'
 
 declare global {
@@ -24,14 +20,6 @@ const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined
 
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const supabase = getSupabaseInstance()
-
-  // Debug logging only - no auth state management here
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.debugSupabase = supabase;
-      console.log('[Debug] Supabase client exposed as window.debugSupabase');
-    }
-  }, [supabase]);
 
   return (
     <SupabaseContext.Provider value={{ supabase }}>
