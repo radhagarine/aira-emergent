@@ -73,7 +73,6 @@ export default function BusinessDashboard() {
           // Use stored ID if it exists in the list, otherwise use the first business
           const businessIdToSelect = businessExists ? selectedBusinessId : data[0].id;
 
-          console.log(`[BusinessDashboard] Selecting business: ${businessIdToSelect} (${businessExists ? 'from store' : 'first in list'})`);
           await handleBusinessChange(businessIdToSelect);
         } else {
           setBusinesses([]);

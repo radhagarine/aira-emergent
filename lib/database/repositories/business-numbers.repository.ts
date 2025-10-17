@@ -405,16 +405,6 @@ export class BusinessNumbersRepository implements IBusinessNumbersRepository {
 
   async getAllByUserId(userId: string): Promise<BusinessNumberWithBusiness[]> {
     try {
-      console.log('[BusinessNumbersRepository] ========== START getAllByUserId ==========');
-      console.log('[BusinessNumbersRepository] userId:', userId);
-      console.log('[BusinessNumbersRepository] tableName:', this.tableName);
-      console.log('[BusinessNumbersRepository] Supabase client:', !!this.supabase);
-
-      // Check auth state
-      const { data: { user: authUser } } = await this.supabase.auth.getUser();
-      console.log('[BusinessNumbersRepository] Auth user from client:', authUser?.id);
-      console.log('[BusinessNumbersRepository] Auth user matches userId:', authUser?.id === userId);
-
       // Strategy: Get numbers owned by user directly (user_id column)
       const { data: directNumbers, error: directError } = await this.supabase
         .from(this.tableName)
@@ -426,10 +416,6 @@ export class BusinessNumbersRepository implements IBusinessNumbersRepository {
         .order('is_primary', { ascending: false })
         .order('created_at', { ascending: false });
 
-      console.log('[BusinessNumbersRepository] Direct query completed');
-      console.log('[BusinessNumbersRepository] directNumbers raw:', directNumbers);
-      console.log('[BusinessNumbersRepository] directError:', directError);
-
       if (directError) {
         console.error('[BusinessNumbersRepository] Error fetching direct numbers:', directError);
         throw new DatabaseError(
@@ -438,9 +424,6 @@ export class BusinessNumbersRepository implements IBusinessNumbersRepository {
           directError.message
         );
       }
-
-      console.log('[BusinessNumbersRepository] Retrieved direct numbers:', directNumbers?.length || 0);
-      console.log('[BusinessNumbersRepository] Direct numbers data:', JSON.stringify(directNumbers, null, 2));
 
       // Also get numbers linked through businesses
       const { data: businessNumbers, error: businessError } = await this.supabase
@@ -458,16 +441,11 @@ export class BusinessNumbersRepository implements IBusinessNumbersRepository {
         // Don't throw here, just log - we can still return direct numbers
       }
 
-      console.log('[BusinessNumbersRepository] Retrieved business numbers:', businessNumbers?.length || 0);
-
       // Merge and deduplicate by id
       const allNumbers = [...(directNumbers || []), ...(businessNumbers || [])];
       const uniqueNumbers = Array.from(
         new Map(allNumbers.map(num => [num.id, num])).values()
       );
-
-      console.log('[BusinessNumbersRepository] Total unique numbers:', uniqueNumbers.length);
-      console.log('[BusinessNumbersRepository] Numbers data:', JSON.stringify(uniqueNumbers, null, 2));
 
       return uniqueNumbers;
     } catch (error) {

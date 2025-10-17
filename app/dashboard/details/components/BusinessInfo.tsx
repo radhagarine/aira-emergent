@@ -18,19 +18,10 @@ const BusinessInfo: React.FC<BusinessInfoProps> = ({
   businessType,
   typeDetails,
   onChange
-}) => { 
-
-  useEffect(() => {
-    console.log('[BusinessInfo] Component rendered with props:', {
-      businessId,
-      businessType,
-      typeDetails: JSON.stringify(typeDetails)
-    });
-  }, [businessId, businessType, typeDetails]);
+}) => {
 
   // Handler for type-specific detail changes
   const handleTypeDetailsChange = (field: string, value: any) => {
-    console.log(`[BusinessInfo] Updating field '${field}' to:`, value);
     onChange({ [field]: value });
   };
   

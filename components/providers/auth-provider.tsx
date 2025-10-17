@@ -68,20 +68,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Initialize auth
     initializeAuth();
 
-    // Listen for auth changes with logging
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        console.log('[Auth] Auth state change event:', event);
-        console.log('[Auth] New session available:', !!currentSession);
-
-        if (event === 'TOKEN_REFRESHED') {
-          console.log('[Auth] Token was refreshed');
-        }
-
-        if (event === 'SIGNED_OUT') {
-          console.log('[Auth] User signed out');
-        }
-
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsLoading(false);

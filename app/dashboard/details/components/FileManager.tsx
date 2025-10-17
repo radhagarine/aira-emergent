@@ -46,17 +46,14 @@ const FileManager: React.FC<FileManagerProps> = ({
   const handleKnowledgeBaseFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || !files.length) {
-      console.log('[FileManager] No files selected');
       return;
     }
 
-    console.log(`[FileManager] Files selected: ${files.length}`);
-    
     try {
       // Check file size (10MB limit)
       const MAX_SIZE = 10 * 1024 * 1024; // 10MB
       const validFiles = Array.from(files).filter(file => file.size <= MAX_SIZE);
-      
+
       if (validFiles.length !== files.length) {
         toast.error('Some files exceeded the 10MB size limit');
         console.error('[FileManager] Files exceeded size limit');
@@ -64,16 +61,12 @@ const FileManager: React.FC<FileManagerProps> = ({
       }
 
       for (const file of validFiles) {
-        console.log(`[FileManager] Processing file: ${file.name}, size: ${formatFileSize(file.size)}, type: ${file.type}`);
-        
         // Mark file as uploading
         setUploadingFiles(prev => ({ ...prev, [file.name]: true }));
-        
+
         try {
           // Call the provided upload handler
-          console.log(`[FileManager] Uploading file: ${file.name}`);
           await onFileUpload(file);
-          console.log(`[FileManager] File uploaded successfully: ${file.name}`);
           toast.success(`File ${file.name} uploaded successfully`);
         } catch (error) {
           console.error(`[FileManager] Error uploading file ${file.name}:`, error);
@@ -99,8 +92,6 @@ const FileManager: React.FC<FileManagerProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log(`[FileManager] CSV file selected: ${file.name}, size: ${formatFileSize(file.size)}`);
-
     // Validate file type
     if (!file.name.toLowerCase().endsWith('.csv')) {
       toast.error('Please upload a CSV file');
@@ -117,7 +108,6 @@ const FileManager: React.FC<FileManagerProps> = ({
     }
 
     setCsvFile(file);
-    console.log('[FileManager] CSV file set successfully');
   };
 
   return (
@@ -231,10 +221,7 @@ const FileManager: React.FC<FileManagerProps> = ({
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                console.log(`[FileManager] Removing file: ${file.name}`);
-                                onFileRemove(file.name);
-                              }}
+                              onClick={() => onFileRemove(file.name)}
                               className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-[#8B0000]"
                             >
                               <X className="h-4 w-4" />

@@ -80,7 +80,6 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
   // Initialize factory only once
   if (!factoryRef.current) {
     factoryRef.current = repositoryFactoryOverride || RepositoryFactory.getInstance();
-    console.log('[ServiceProvider] RepositoryFactory initialized');
   }
 
   const repositoryFactory = factoryRef.current;
@@ -90,7 +89,6 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
 
   // Initialize services only once
   if (!servicesRef.current) {
-    console.log('[ServiceProvider] Initializing all services');
     servicesRef.current = {
       businessService: businessServiceOverride || new BusinessService(repositoryFactory),
       appointmentService: appointmentServiceOverride || new AppointmentService(repositoryFactory),

@@ -73,17 +73,13 @@ const BusinessProfiles = () => {
 
   const fetchBusinesses = async () => {
     if (!user?.id) {
-      console.log('[BusinessProfile] No user ID available, skipping fetch');
       return;
     }
 
-    console.log(`[BusinessProfile] Fetching businesses for user ID: ${user.id}`);
     try {
       setLoading(true);
       setError(null);
-      console.log('[BusinessProfile] Calling businessService.getBusinessProfile...');
       const data = await businessService.getBusinessProfile(user.id);
-      console.log(`[BusinessProfile] Fetched ${data.length} businesses:`, data);
       setBusinesses(data);
     } catch (error) {
       console.error('[BusinessProfile] Error fetching businesses:', error);
@@ -169,16 +165,8 @@ const BusinessProfiles = () => {
         type: formData.type || 'restaurant',
         profile_image: formData.profileImage
       };
-      
-      console.log('[BusinessProfile] Prepared business data:', JSON.stringify({
-        ...businessData,
-        profile_image: businessData.profile_image instanceof File 
-          ? `[File: ${businessData.profile_image.name}]` 
-          : businessData.profile_image
-      }));
 
       if (isEditing && selectedBusiness) {
-        console.log(`[BusinessProfile] Updating business with ID: ${selectedBusiness.id}`);
         // Update existing business
         const updateData = { 
           name: businessData.name,
@@ -198,11 +186,10 @@ const BusinessProfiles = () => {
         toast.success("Business updated successfully");
         
         // Update businesses list with the updated business
-        setBusinesses(prevBusinesses => 
+        setBusinesses(prevBusinesses =>
           prevBusinesses.map(b => b.id === updatedBusiness.id ? updatedBusiness : b)
         );
       } else {
-        console.log('[BusinessProfile] Creating new business...');
         // Create new business
         const newBusiness = await businessService.createBusiness(businessData);
         

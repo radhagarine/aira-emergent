@@ -24,11 +24,6 @@ export default function NumbersPage() {
   const { user } = useAuth()
   const [numbers, setNumbers] = useState<BusinessNumberWithBusiness[]>([])
   const [stats, setStats] = useState<NumberUsageStats | null>(null)
-
-  // Debug: Log whenever numbers state changes
-  useEffect(() => {
-    console.log('[NumbersPage] numbers state updated:', numbers.length, 'numbers')
-  }, [numbers])
   const [availableBalance, setAvailableBalance] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
