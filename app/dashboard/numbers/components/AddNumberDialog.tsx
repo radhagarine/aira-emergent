@@ -32,8 +32,6 @@ export function AddNumberDialog({ open, onClose, onSuccess, initialPhoneNumber }
   const [purchaseError, setPurchaseError] = useState('')
   const [displayName, setDisplayName] = useState('')
 
-  const userId = user?.id || ''
-
   useEffect(() => {
     if (open) {
       // Set phone number if provided
@@ -63,12 +61,13 @@ export function AddNumberDialog({ open, onClose, onSuccess, initialPhoneNumber }
       const response = await fetch('/api/numbers/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Ensure cookies are sent
         body: JSON.stringify({
           phoneNumber: phoneNumber,
           displayName,
           countryCode: 'US',
           numberType: BusinessNumberType.LOCAL,
-          userId,
+          // userId is now extracted from session on server-side
         }),
       })
 

@@ -1,8 +1,11 @@
 // app/api/numbers/purchase/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { getTwilioNumbersService } from '@/lib/services/twilio';
+import type { TwilioPurchasedNumber } from '@/lib/services/twilio/types';
+import { TwilioConfig } from '@/lib/services/twilio/twilio.config';
 import { RepositoryFactory } from '@/lib/database/repository.factory';
 import { WalletService } from '@/lib/services/wallet/wallet.service';
 import { TransactionService } from '@/lib/services/transaction/transaction.service';
@@ -10,26 +13,72 @@ import { BusinessNumbersService } from '@/lib/services/numbers/business-numbers.
 import { BusinessNumberType } from '@/lib/types/database/numbers.types';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/numbers/purchase
  * Purchase a phone number from Twilio
  */
 export async function POST(request: NextRequest) {
-  // Initialize Supabase client
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  console.log('[Purchase API] Request headers:', {
+    cookie: request.headers.get('cookie'),
+    authorization: request.headers.get('authorization'),
+  });
 
-  if (!supabaseUrl || !supabaseKey) {
+  // Initialize authenticated Supabase client with user session
+  const cookieStore = await cookies();
+
+  console.log('[Purchase API] Cookies from store:', cookieStore.getAll().map(c => ({ name: c.name, hasValue: !!c.value })));
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          const value = cookieStore.get(name)?.value;
+          console.log(`[Purchase API] Cookie get: ${name} = ${value ? 'EXISTS' : 'NULL'}`);
+          return value;
+        },
+        set(name: string, value: string, options: any) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {
+            // Cookie setting can fail in middleware/server components
+          }
+        },
+        remove(name: string, options: any) {
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch (error) {
+            // Cookie removal can fail in middleware/server components
+          }
+        },
+      },
+    }
+  );
+
+  // Verify user is authenticated
+  // Use getUser() instead of getSession() for API routes - it validates the JWT
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+  console.log('[Purchase API] User check:', {
+    hasUser: !!user,
+    userId: user?.id,
+    userError: userError,
+    cookies: cookieStore.getAll().map(c => c.name), // Debug: show which cookies are available
+  });
+
+  if (userError || !user) {
+    console.error('[Purchase API] No user or error:', userError);
     return NextResponse.json(
-      { error: 'Database configuration missing' },
-      { status: 500 }
+      { error: 'Unauthorized - please log in' },
+      { status: 401 }
     );
   }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
   let twilioSid: string | null = null;
   let transactionCreated = false;
+  let pendingNumberId: string | null = null;
 
   try {
     const body = await request.json();
@@ -38,11 +87,13 @@ export async function POST(request: NextRequest) {
       displayName,
       countryCode,
       numberType,
-      userId, // In production, get from auth session
     } = body;
 
+    // Get userId from authenticated user (not from request body)
+    const userId = user.id;
+
     // Validate required parameters
-    if (!phoneNumber || !displayName || !userId) {
+    if (!phoneNumber || !displayName) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
         { status: 400 }
@@ -89,46 +140,66 @@ export async function POST(request: NextRequest) {
     } */
     console.log('[TEST MODE] Skipping wallet balance check - userId:', userId, 'monthlyCost:', monthlyCost);
 
-    // Step 2: Purchase number from Twilio
+    // Step 2: Create database record FIRST with 'pending' status
+    // This ensures we don't lose money if DB fails after Twilio purchase
+    try {
+      const pendingNumber = await businessNumbersService.createNumber({
+        user_id: userId,
+        business_id: null,
+        phone_number: phoneNumber,
+        display_name: displayName,
+        country_code: countryCode || 'US',
+        number_type: numberType || BusinessNumberType.LOCAL,
+        provider: 'twilio',
+        monthly_cost: monthlyCost,
+        purchase_date: new Date().toISOString(),
+        is_primary: false,
+        is_active: false, // Mark as inactive until Twilio purchase succeeds
+        twilio_sid: null, // Will be updated after Twilio purchase
+      });
+
+      pendingNumberId = pendingNumber.id;
+      console.log('[Purchase] Database record created:', pendingNumberId);
+    } catch (dbError: any) {
+      console.error('[Purchase] Failed to create database record:', dbError);
+      throw new Error('Failed to create phone number record. Please check RLS policies are configured.');
+    }
+
+    // Step 3: Purchase number from Twilio (money is charged HERE)
     const webhookBaseUrl = process.env.TWILIO_WEBHOOK_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://yourdomain.com';
 
-    const twilioNumber = await twilioService.purchaseNumber({
-      phoneNumber,
-      friendlyName: displayName,
-      voiceUrl: `${webhookBaseUrl}/api/voice-agent/handle-call`,
-      voiceMethod: 'POST',
-      smsUrl: `${webhookBaseUrl}/api/voice-agent/handle-sms`,
-      smsMethod: 'POST',
-      statusCallback: `${webhookBaseUrl}/api/voice-agent/status`,
-      statusCallbackMethod: 'POST',
-    });
+    let twilioNumber: TwilioPurchasedNumber;
+    try {
+      twilioNumber = await twilioService.purchaseNumber({
+        phoneNumber,
+        friendlyName: displayName,
+        voiceUrl: `${webhookBaseUrl}/api/voice-agent/handle-call`,
+        voiceMethod: 'POST',
+        smsUrl: `${webhookBaseUrl}/api/voice-agent/handle-sms`,
+        smsMethod: 'POST',
+        statusCallback: `${webhookBaseUrl}/api/voice-agent/status`,
+        statusCallbackMethod: 'POST',
+      });
 
-    twilioSid = twilioNumber.sid;
+      twilioSid = twilioNumber.sid;
+      console.log('[Purchase] Twilio number purchased:', twilioSid);
+    } catch (twilioError: any) {
+      // Twilio purchase failed - delete the pending database record
+      console.error('[Purchase] Twilio purchase failed:', twilioError);
+      if (pendingNumberId) {
+        try {
+          await businessNumbersService.deleteNumber(pendingNumberId);
+          console.log('[Purchase] Cleaned up pending database record');
+        } catch (cleanupError) {
+          console.error('[Purchase] Failed to cleanup database record:', cleanupError);
+        }
+      }
+      throw twilioError;
+    }
 
-    // Step 3: Deduct from wallet
-    // TEMPORARILY DISABLED FOR TESTING - Re-enable in production
-    /* await walletService.deductFunds(
-      userId,
-      monthlyCost,
-      'USD',
-      `Phone number purchase: ${phoneNumber}`
-    ); */
-    console.log('[TEST MODE] Skipping wallet deduction');
-
-    // Step 4: Save to database (without business_id - will be assigned later)
-    const savedNumber = await businessNumbersService.createNumber({
-      user_id: userId,
-      business_id: null, // Not assigned to business yet
-      phone_number: phoneNumber,
-      display_name: displayName,
-      country_code: countryCode || 'US',
-      number_type: numberType || BusinessNumberType.LOCAL,
-      provider: 'twilio',
-      monthly_cost: monthlyCost,
-      purchase_date: new Date().toISOString(),
-      is_primary: false,
+    // Step 4: Update database record with Twilio details and mark as active
+    const savedNumber = await businessNumbersService.updateNumber(pendingNumberId!, {
       is_active: true,
-      // Twilio-specific fields
       twilio_sid: twilioNumber.sid,
       twilio_account_sid: twilioNumber.accountSid,
       voice_url: twilioNumber.voiceUrl,
@@ -140,15 +211,30 @@ export async function POST(request: NextRequest) {
       ),
     });
 
-    // Step 5: Create transaction record
-    await transactionService.createPhoneNumberPurchaseTransaction(
+    console.log('[Purchase] Database record updated with Twilio details');
+
+    // Step 5: Deduct from wallet (DISABLED FOR TESTING)
+    /* await walletService.deductFunds(
       userId,
       monthlyCost,
       'USD',
-      savedNumber.id
-    );
+      `Phone number purchase: ${phoneNumber}`
+    ); */
+    console.log('[TEST MODE] Skipping wallet deduction');
 
-    transactionCreated = true;
+    // Step 6: Create transaction record (skip in testing mode)
+    if (TwilioConfig.isTestingMode()) {
+      console.log('[TEST MODE] Skipping transaction creation');
+    } else {
+      await transactionService.createPhoneNumberPurchaseTransaction(
+        userId,
+        monthlyCost,
+        'USD',
+        savedNumber.id
+      );
+      transactionCreated = true;
+      console.log('[Purchase] Transaction record created');
+    }
 
     return NextResponse.json({
       success: true,
@@ -161,15 +247,15 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[API /api/numbers/purchase] Error:', error);
 
-    // Rollback: Release Twilio number if purchased
+    // IMPORTANT: DO NOT rollback Twilio number if it was successfully purchased
+    // The money has already been charged, so releasing the number would lose both money and the number
+    // Instead, keep the DB record in pending state (is_active=false) so admin can investigate
     if (twilioSid) {
-      try {
-        const twilioService = getTwilioNumbersService();
-        await twilioService.releaseNumber(twilioSid);
-        console.log(`[API /api/numbers/purchase] Rolled back Twilio number: ${twilioSid}`);
-      } catch (rollbackError) {
-        console.error('[API /api/numbers/purchase] Failed to rollback Twilio number:', rollbackError);
-      }
+      console.error(
+        `[API /api/numbers/purchase] CRITICAL: Twilio number ${twilioSid} was purchased but DB update failed. ` +
+        `Database record ${pendingNumberId || 'unknown'} exists in pending state. ` +
+        `DO NOT release the number - money has been charged. Manual intervention required.`
+      );
     }
 
     // Handle specific errors

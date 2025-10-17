@@ -33,10 +33,18 @@ export class TransactionService extends BaseService implements ITransactionServi
     metadata?: Record<string, any>
   ): Promise<TransactionRow> {
     try {
-      // Get wallet
-      const wallet = await this.walletRepository.getByUserId(userId);
+      // Get or create wallet
+      let wallet = await this.walletRepository.getByUserId(userId);
       if (!wallet) {
-        throw new Error('Wallet not found for user');
+        // Create wallet if it doesn't exist
+        wallet = await this.walletRepository.create({
+          user_id: userId,
+          balance_usd: 0,
+          balance_inr: 0,
+          currency: 'USD',
+          is_active: true
+        });
+        console.log('[TransactionService] Created new wallet for user:', userId);
       }
 
       // Create transaction
@@ -134,10 +142,18 @@ export class TransactionService extends BaseService implements ITransactionServi
     phoneNumberId: string
   ): Promise<TransactionRow> {
     try {
-      // Get wallet
-      const wallet = await this.walletRepository.getByUserId(userId);
+      // Get or create wallet
+      let wallet = await this.walletRepository.getByUserId(userId);
       if (!wallet) {
-        throw new Error('Wallet not found for user');
+        // Create wallet if it doesn't exist
+        wallet = await this.walletRepository.create({
+          user_id: userId,
+          balance_usd: 0,
+          balance_inr: 0,
+          currency: 'USD',
+          is_active: true
+        });
+        console.log('[TransactionService] Created new wallet for user:', userId);
       }
 
       // Create debit transaction for phone number purchase

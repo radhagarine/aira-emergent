@@ -10,6 +10,8 @@ import {
   getTwilioPricing,
 } from './types';
 import { BusinessNumberType } from '@/lib/types/database/numbers.types';
+import { TwilioConfig } from './twilio.config';
+import { mockPurchaseNumber, mockReleaseNumber } from './twilio.mocks';
 
 /**
  * Service for managing Twilio phone numbers
@@ -94,6 +96,10 @@ export class TwilioNumbersService {
 
   /**
    * Purchase a phone number from Twilio
+   *
+   * Behavior controlled by TwilioConfig.TESTING_MODE:
+   * - If true: Returns mock data, no API call, no charges
+   * - If false: Makes real Twilio API call, charges apply
    */
   public async purchaseNumber(
     params: TwilioNumberPurchaseParams
@@ -102,9 +108,24 @@ export class TwilioNumbersService {
       throw new Error('Twilio is not configured');
     }
 
+    // TESTING MODE - Return mock response without API call
+    console.log('[TwilioNumbersService] Testing mode check:', {
+      isTestingMode: TwilioConfig.isTestingMode(),
+      envVar: process.env.TWILIO_TESTING_MODE,
+      configValue: TwilioConfig.TESTING_MODE
+    });
+    
+    if (TwilioConfig.isTestingMode()) {
+      console.log('[TwilioNumbersService] Using MOCK purchase - no real API call');
+      return await mockPurchaseNumber(params);
+    }
+
+    // PRODUCTION MODE - Make real Twilio API call (CHARGES MONEY)
     const client = getTwilioClient();
 
     try {
+      console.log('⚠️  PRODUCTION MODE: Making REAL Twilio API call - charges will apply');
+
       const incomingPhoneNumber = await client.incomingPhoneNumbers.create({
         phoneNumber: params.phoneNumber,
         friendlyName: params.friendlyName,
@@ -117,6 +138,8 @@ export class TwilioNumbersService {
         addressSid: params.addressSid,
         bundleSid: params.bundleSid,
       });
+
+      console.log('✅ Real Twilio purchase successful. SID:', incomingPhoneNumber.sid);
 
       return {
         sid: incomingPhoneNumber.sid,
@@ -155,16 +178,30 @@ export class TwilioNumbersService {
 
   /**
    * Release/delete a phone number
+   *
+   * Behavior controlled by TwilioConfig.TESTING_MODE:
+   * - If true: Returns mock response, no API call, doesn't actually delete
+   * - If false: Makes real Twilio API call, actually deletes number
    */
   public async releaseNumber(twilioSid: string): Promise<void> {
     if (!isTwilioConfigured()) {
       throw new Error('Twilio is not configured');
     }
 
+    // TESTING MODE - Return mock response without API call
+    if (TwilioConfig.isTestingMode()) {
+      return await mockReleaseNumber(twilioSid);
+    }
+
+    // PRODUCTION MODE - Make real Twilio API call (ACTUALLY DELETES NUMBER)
     const client = getTwilioClient();
 
     try {
+      console.log('⚠️  PRODUCTION MODE: Making REAL Twilio API call - will actually delete number');
+
       await client.incomingPhoneNumbers(twilioSid).remove();
+
+      console.log('✅ Real Twilio release successful. Number deleted:', twilioSid);
     } catch (error: any) {
       console.error('[TwilioNumbersService] Error releasing number:', error);
 

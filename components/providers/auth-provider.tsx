@@ -46,8 +46,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Get initial session
     const initializeAuth = async () => {
       try {
-        // Get current session
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        // Get current session with error handling for cookie parsing
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.warn('[Auth] Session error (this may be normal on first load):', error.message);
+        }
 
         if (currentSession) {
           setSession(currentSession);
@@ -55,6 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        // Don't set loading to false immediately on error, let it retry
       } finally {
         setIsLoading(false);
       }
@@ -71,6 +76,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (event === 'TOKEN_REFRESHED') {
           console.log('[Auth] Token was refreshed');
+        }
+
+        if (event === 'SIGNED_OUT') {
+          console.log('[Auth] User signed out');
         }
 
         setSession(currentSession);
