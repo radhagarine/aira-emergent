@@ -112,12 +112,16 @@ export class TwilioNumbersService {
     console.log('[TwilioNumbersService] Testing mode check:', {
       isTestingMode: TwilioConfig.isTestingMode(),
       envVar: process.env.TWILIO_TESTING_MODE,
-      configValue: TwilioConfig.TESTING_MODE
+      configValue: TwilioConfig.TESTING_MODE,
+      envVarType: typeof process.env.TWILIO_TESTING_MODE,
+      envVarLength: process.env.TWILIO_TESTING_MODE?.length
     });
     
     if (TwilioConfig.isTestingMode()) {
-      console.log('[TwilioNumbersService] Using MOCK purchase - no real API call');
+      console.log('[TwilioNumbersService] ✅ Using MOCK purchase - no real API call');
       return await mockPurchaseNumber(params);
+    } else {
+      console.log('[TwilioNumbersService] ⚠️ PRODUCTION MODE - making REAL API call!');
     }
 
     // PRODUCTION MODE - Make real Twilio API call (CHARGES MONEY)

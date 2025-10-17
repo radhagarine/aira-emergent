@@ -120,9 +120,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Check wallet balance
-    // TEMPORARILY DISABLED FOR TESTING - Re-enable in production
-    /* const hasSufficientBalance = await walletService.hasSufficientBalance(
+    // Step 1: Check wallet balance (ENABLED FOR WALLET TESTING)
+    const hasSufficientBalance = await walletService.hasSufficientBalance(
       userId,
       monthlyCost,
       'USD'
@@ -137,8 +136,8 @@ export async function POST(request: NextRequest) {
         },
         { status: 402 }
       );
-    } */
-    console.log('[TEST MODE] Skipping wallet balance check - userId:', userId, 'monthlyCost:', monthlyCost);
+    }
+    console.log('[WALLET TEST] Wallet balance check passed - userId:', userId, 'monthlyCost:', monthlyCost);
 
     // Step 2: Create database record FIRST with 'pending' status
     // This ensures we don't lose money if DB fails after Twilio purchase
@@ -213,28 +212,24 @@ export async function POST(request: NextRequest) {
 
     console.log('[Purchase] Database record updated with Twilio details');
 
-    // Step 5: Deduct from wallet (DISABLED FOR TESTING)
-    /* await walletService.deductFunds(
+    // Step 5: Deduct from wallet (ENABLED FOR WALLET TESTING)
+    await walletService.deductFunds(
       userId,
       monthlyCost,
       'USD',
       `Phone number purchase: ${phoneNumber}`
-    ); */
-    console.log('[TEST MODE] Skipping wallet deduction');
+    );
+    console.log('[WALLET TEST] Wallet deduction completed - amount:', monthlyCost);
 
-    // Step 6: Create transaction record (skip in testing mode)
-    if (TwilioConfig.isTestingMode()) {
-      console.log('[TEST MODE] Skipping transaction creation');
-    } else {
-      await transactionService.createPhoneNumberPurchaseTransaction(
-        userId,
-        monthlyCost,
-        'USD',
-        savedNumber.id
-      );
-      transactionCreated = true;
-      console.log('[Purchase] Transaction record created');
-    }
+    // Step 6: Create transaction record (ENABLED FOR WALLET TESTING)
+    await transactionService.createPhoneNumberPurchaseTransaction(
+      userId,
+      monthlyCost,
+      'USD',
+      savedNumber.id
+    );
+    transactionCreated = true;
+    console.log('[WALLET TEST] Transaction record created');
 
     return NextResponse.json({
       success: true,

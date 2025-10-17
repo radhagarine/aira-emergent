@@ -19,7 +19,7 @@ export const TwilioConfig = {
    * TWILIO_TESTING_MODE=true (testing)
    * TWILIO_TESTING_MODE=false (production)
    */
-  TESTING_MODE: process.env.TWILIO_TESTING_MODE === 'true' || true, // Default: true (safe)
+  TESTING_MODE: process.env.TWILIO_TESTING_MODE !== 'false', // Default: true (safe)
 
   /**
    * Check if we're in testing mode
@@ -39,6 +39,12 @@ export const TwilioConfig = {
    * Log current mode on startup
    */
   logMode(): void {
+    console.log('[TwilioConfig] Environment check:', {
+      envVar: process.env.TWILIO_TESTING_MODE,
+      testingMode: this.TESTING_MODE,
+      isTestingMode: this.isTestingMode()
+    });
+    
     if (this.isTestingMode()) {
       console.log('╔════════════════════════════════════════════════════════════════╗');
       console.log('║  TWILIO TESTING MODE ENABLED                                   ║');

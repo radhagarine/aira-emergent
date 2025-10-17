@@ -157,20 +157,41 @@ export class TransactionService extends BaseService implements ITransactionServi
       }
 
       // Create debit transaction for phone number purchase
-      const transaction = await this.transactionRepository.create({
-        user_id: userId,
-        wallet_id: wallet.id,
-        type: TransactionType.DEBIT,
-        amount,
-        currency,
-        description: `Phone number purchase`,
-        status: TransactionStatus.COMPLETED, // Immediately complete
-        business_number_id: phoneNumberId,
-        metadata: {
-          type: 'phone_number_purchase',
-          phone_number_id: phoneNumberId
-        }
-      });
+      // Try to create transaction with business_number_id, fallback to null if it fails
+      let transaction;
+      try {
+        transaction = await this.transactionRepository.create({
+          user_id: userId,
+          wallet_id: wallet.id,
+          type: TransactionType.DEBIT,
+          amount,
+          currency,
+          description: `Phone number purchase`,
+          status: TransactionStatus.COMPLETED, // Immediately complete
+          business_number_id: phoneNumberId,
+          metadata: {
+            type: 'phone_number_purchase',
+            phone_number_id: phoneNumberId
+          }
+        });
+      } catch (error) {
+        console.warn('[TransactionService] Failed to create transaction with business_number_id, retrying without it:', error);
+        // Retry without business_number_id if foreign key constraint fails
+        transaction = await this.transactionRepository.create({
+          user_id: userId,
+          wallet_id: wallet.id,
+          type: TransactionType.DEBIT,
+          amount,
+          currency,
+          description: `Phone number purchase`,
+          status: TransactionStatus.COMPLETED,
+          business_number_id: null,
+          metadata: {
+            type: 'phone_number_purchase',
+            phone_number_id: phoneNumberId
+          }
+        });
+      }
 
       // Clear cache
       this.clearCache(`transactions_${userId}`);

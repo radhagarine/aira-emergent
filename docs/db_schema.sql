@@ -85,7 +85,7 @@ CREATE TABLE public.business_hours (
 );
 CREATE TABLE public.business_numbers (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  business_id uuid NOT NULL,
+  business_id uuid,
   phone_number text NOT NULL UNIQUE,
   display_name text NOT NULL,
   country_code text NOT NULL,
@@ -105,8 +105,10 @@ CREATE TABLE public.business_numbers (
   capabilities jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  user_id uuid,
   CONSTRAINT business_numbers_pkey PRIMARY KEY (id),
-  CONSTRAINT business_numbers_business_id_fkey FOREIGN KEY (business_id) REFERENCES public.business_v2(id)
+  CONSTRAINT business_numbers_business_id_fkey FOREIGN KEY (business_id) REFERENCES public.business_v2(id),
+  CONSTRAINT business_numbers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.business_special_dates (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -186,6 +188,39 @@ CREATE TABLE public.service_details_v2 (
   CONSTRAINT service_details_v2_pkey PRIMARY KEY (id),
   CONSTRAINT service_details_v2_business_id_fkey1 FOREIGN KEY (business_id) REFERENCES public.business_v2(id)
 );
+CREATE TABLE public.transactions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  wallet_id uuid NOT NULL,
+  type USER-DEFINED NOT NULL,
+  amount numeric NOT NULL CHECK (amount > 0::numeric),
+  currency text NOT NULL DEFAULT 'USD'::text CHECK (currency = ANY (ARRAY['USD'::text, 'INR'::text])),
+  description text NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'pending'::transaction_status,
+  payment_method text,
+  stripe_payment_id text,
+  stripe_checkout_session_id text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  business_number_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT transactions_pkey PRIMARY KEY (id),
+  CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT transactions_wallet_id_fkey FOREIGN KEY (wallet_id) REFERENCES public.wallets(id),
+  CONSTRAINT transactions_business_number_id_fkey FOREIGN KEY (business_number_id) REFERENCES public.business_numbers(id)
+);
 CREATE TABLE public.url (
   decrypted_secret text
+);
+CREATE TABLE public.wallets (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
+  balance_usd numeric NOT NULL DEFAULT 0.00 CHECK (balance_usd >= 0::numeric),
+  balance_inr numeric NOT NULL DEFAULT 0.00 CHECK (balance_inr >= 0::numeric),
+  currency text NOT NULL DEFAULT 'USD'::text CHECK (currency = ANY (ARRAY['USD'::text, 'INR'::text])),
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT wallets_pkey PRIMARY KEY (id),
+  CONSTRAINT wallets_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
