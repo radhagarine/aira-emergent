@@ -32,30 +32,7 @@ const FileManager: React.FC<FileManagerProps> = ({
   
   // Debug logging for props
   useEffect(() => {
-    console.log('[FileManager] Mounted with props:', {
-      businessId,
-      knowledgeBaseFiles: knowledgeBaseFiles?.length || 0,
-      hasCSVFile: !!csvFile
-    });
-    
-    // Log each knowledge base file for debugging
-    if (knowledgeBaseFiles && knowledgeBaseFiles.length > 0) {
-      console.log('[FileManager] Knowledge base files:', knowledgeBaseFiles);
-    } else {
-      console.log('[FileManager] No knowledge base files available');
-    }
-
-    async function checkAuth() {
-      const { data, error } = await supabase.auth.getSession();
-      console.log('[Auth Debug in FileManager] Session data:', data);
-      console.log('[Auth Debug in FileManager] Session error:', error);
-      
-      // Also check the user
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('[Auth Debug] Current user:', user);
-    }
-    
-    checkAuth();
+    // Component mounted successfully
   }, [businessId, knowledgeBaseFiles, csvFile, supabase]);
 
   // Format file size for display

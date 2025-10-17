@@ -39,24 +39,10 @@ export const TwilioConfig = {
    * Log current mode on startup
    */
   logMode(): void {
-    console.log('[TwilioConfig] Environment check:', {
-      envVar: process.env.TWILIO_TESTING_MODE,
-      testingMode: this.TESTING_MODE,
-      isTestingMode: this.isTestingMode()
-    });
-    
     if (this.isTestingMode()) {
-      console.log('╔════════════════════════════════════════════════════════════════╗');
-      console.log('║  TWILIO TESTING MODE ENABLED                                   ║');
-      console.log('║  All Twilio API calls are MOCKED - No charges will be applied ║');
-      console.log('║  To enable production mode, set TWILIO_TESTING_MODE=false      ║');
-      console.log('╚════════════════════════════════════════════════════════════════╝');
+      console.log('🔧 TWILIO TESTING MODE ENABLED - All API calls are MOCKED');
     } else {
-      console.log('╔════════════════════════════════════════════════════════════════╗');
-      console.log('║  ⚠️  TWILIO PRODUCTION MODE ENABLED  ⚠️                        ║');
-      console.log('║  Real Twilio API calls - CHARGES WILL BE APPLIED              ║');
-      console.log('║  To enable testing mode, set TWILIO_TESTING_MODE=true         ║');
-      console.log('╚════════════════════════════════════════════════════════════════╝');
+      console.warn('⚠️ TWILIO PRODUCTION MODE ENABLED - Real API calls will be made');
     }
   },
 } as const;

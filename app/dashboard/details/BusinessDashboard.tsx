@@ -33,11 +33,6 @@ export default function BusinessDashboard() {
   // Get Zustand store values and actions
   const { selectedBusinessId, setSelectedBusinessId } = useBusinessStore();
   
-  // Logging function
-  const logWithContext = (message: string, data?: any) => {
-    console.log(`[BusinessDashboard] ${message}`, data || '');
-  };
-
   // Main states
   const [businesses, setBusinesses] = useState<BusinessResponse[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessResponse | null>(null);
@@ -77,8 +72,8 @@ export default function BusinessDashboard() {
           
           // Use stored ID if it exists in the list, otherwise use the first business
           const businessIdToSelect = businessExists ? selectedBusinessId : data[0].id;
-          
-          logWithContext(`Selecting business: ${businessIdToSelect} (${businessExists ? 'from store' : 'first in list'})`);
+
+          console.log(`[BusinessDashboard] Selecting business: ${businessIdToSelect} (${businessExists ? 'from store' : 'first in list'})`);
           await handleBusinessChange(businessIdToSelect);
         } else {
           setBusinesses([]);
@@ -104,12 +99,9 @@ export default function BusinessDashboard() {
     // Check auth state
     async function checkAuth() {
       const { data, error } = await supabase.auth.getSession();
-      console.log('[Auth Debug] Session data:', data);
-      console.log('[Auth Debug] Session error:', error);
       
       // Also check the user
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('[Auth Debug] Current user:', user);
     }
     
     checkAuth();
@@ -131,7 +123,6 @@ export default function BusinessDashboard() {
         fileService.getKnowledgeBaseFiles(businessId)
       ]);
       
-      console.log('[BusinessDashboard] Fetched Business Details:', businessDetails);
       
       setSelectedBusiness(businessDetails);
       setKnowledgeBaseFiles(knowledgeBaseFiles);
@@ -160,7 +151,6 @@ export default function BusinessDashboard() {
             takeout_available: details.takeout_available === true,
             operating_hours: details.operating_hours || ''
           };
-          console.log('[BusinessDashboard] Extracted restaurant details:', typeDetails);
         }
       } else if (businessType === 'retail') {
         const details = getDetails(businessDetails.retail_details_v2);
@@ -173,7 +163,6 @@ export default function BusinessDashboard() {
             delivery_available: details.delivery_available === true,
             operating_hours: details.operating_hours || ''
           };
-          console.log('[BusinessDashboard] Extracted retail details:', typeDetails);
         }
       } else if (businessType === 'service') {
         const details = getDetails(businessDetails.service_details_v2);
@@ -186,7 +175,6 @@ export default function BusinessDashboard() {
             requires_booking: details.requires_booking === true,
             operating_hours: details.operating_hours || ''
           };
-          console.log('[BusinessDashboard] Extracted service details:', typeDetails);
         }
       }
       
@@ -208,11 +196,6 @@ export default function BusinessDashboard() {
       
       // Set form data
       setFormData({
-        typeDetails,
-        customerSettings
-      });
-      
-      console.log('[BusinessDashboard] Form data set:', {
         typeDetails,
         customerSettings
       });
@@ -249,7 +232,6 @@ export default function BusinessDashboard() {
     
     try {
       setSaving(true);
-      console.log('[BusinessDashboard] Starting save operation for active tab:', activeTab);
       
       const { typeDetails, customerSettings } = formData;
       let saveSuccess = false;
@@ -278,13 +260,10 @@ export default function BusinessDashboard() {
       
       if (saveSuccess) {
         // Wait for a brief moment to ensure backend has processed the changes
-        console.log('[BusinessDashboard] Waiting for backend to process changes...');
         await new Promise(resolve => setTimeout(resolve, 800));
         
         // Now refresh the data
-        console.log('[BusinessDashboard] Refreshing business data...');
         await handleBusinessChange(selectedBusinessId);
-        console.log('[BusinessDashboard] Data refresh complete');
       }
     } catch (error) {
       console.error('[BusinessDashboard] Save operation failed:', error);
@@ -297,7 +276,6 @@ export default function BusinessDashboard() {
   // Helper function for details tab save
   const handleDetailsTabSave = async (typeDetails: any) => {
     const businessType = selectedBusiness!.type;
-    console.log(`[BusinessDashboard] Saving ${businessType} details:`, typeDetails);
     
     try {
       // Get the appropriate type-specific service
@@ -306,7 +284,6 @@ export default function BusinessDashboard() {
       // Update type-specific details
       await typeSpecificService.updateDetails(selectedBusinessId, typeDetails);
       
-      console.log('[BusinessDashboard] Details saved successfully');
       toast.success('Business details saved successfully');
     } catch (error) {
       console.error('[BusinessDashboard] Error saving business details:', error);
@@ -321,7 +298,6 @@ export default function BusinessDashboard() {
   
   // Helper function for interaction tab save
   const handleInteractionTabSave = async (customerSettings: any) => {
-    console.log('[BusinessDashboard] Saving customer interaction settings:', customerSettings);
     
     try {
       // Update customer interaction settings
@@ -330,7 +306,6 @@ export default function BusinessDashboard() {
         customerSettings
       );
       
-      console.log('[BusinessDashboard] Customer interaction settings saved successfully');
       toast.success('Customer interaction settings saved successfully');
     } catch (error) {
       console.error('[BusinessDashboard] Error saving customer interaction:', error);
@@ -351,15 +326,12 @@ const handleFileUpload = async (file: File) => {
     return;
   }
   
-  console.log(`[BusinessDashboard] Starting upload for file: ${file.name}, size: ${file.size}, type: ${file.type}`);
   
   try {
     // Perform client-side validation before starting upload
     // Show a warning if file seems large (over 8MB as a visual indicator)
     const fileSizeMB = file.size / (1024 * 1024);
-    console.log(`[BusinessDashboard] File size: ${fileSizeMB.toFixed(2)}MB`);
     if (fileSizeMB > 8) {
-      console.log(`[BusinessDashboard] Large file detected: ${fileSizeMB.toFixed(2)}MB`);
       toast.error(`File size is ${fileSizeMB.toFixed(2)}MB. Maximum allowed is 10MB.`);
     }
     // Show toast for upload starting
@@ -371,7 +343,6 @@ const handleFileUpload = async (file: File) => {
       file
     );
     
-    console.log('[BusinessDashboard] Upload successful, result:', result);
     
     // Add to local state with key details
     setKnowledgeBaseFiles(prev => {
@@ -382,11 +353,9 @@ const handleFileUpload = async (file: File) => {
       );
       
       if (exists) {
-        console.log(`[BusinessDashboard] File ${result.name} already exists in state, not adding duplicate`);
         return prev;
       }
       
-      console.log(`[BusinessDashboard] Adding file ${result.name} to state`);
       return [...prev, result];
     });
     
@@ -423,10 +392,8 @@ const refreshKnowledgeBaseFiles = async () => {
   if (!selectedBusinessId) return;
   
   try {
-    console.log(`[BusinessDashboard] Refreshing knowledge base files for business: ${selectedBusinessId}`);
     
     const files = await fileService.getKnowledgeBaseFiles(selectedBusinessId);
-    console.log(`[BusinessDashboard] Retrieved ${files.length} knowledge base files:`, files);
     
     setKnowledgeBaseFiles(files);
   } catch (error) {
@@ -445,7 +412,6 @@ const handleFileRemove = async (fileName: string) => {
     return;
   }
   
-  console.log(`[BusinessDashboard] Attempting to remove file: ${fileName} from business: ${selectedBusinessId}`);
   
   try {
     // Show a loading toast
@@ -457,7 +423,6 @@ const handleFileRemove = async (fileName: string) => {
     // Update local state to remove the file
     setKnowledgeBaseFiles(prev => prev.filter(file => file.name !== fileName));
     
-    console.log(`[BusinessDashboard] File ${fileName} removed successfully`);
     toast.success(`File ${fileName} removed successfully`);
     
     // Refresh files list
@@ -482,12 +447,10 @@ const handleFileTabSave = async () => {
     return;
   }
   
-  console.log('[BusinessDashboard] Handling file tab save...');
   
   try {
     // Handle CSV file upload if present
     if (csvFile) {
-      console.log(`[BusinessDashboard] Uploading CSV file: ${csvFile.name}`);
       
       // Show upload progress toast
       toast.message(`Uploading ${csvFile.name}...`);
@@ -497,10 +460,8 @@ const handleFileTabSave = async () => {
       // Clear CSV file state after successful upload
       setCsvFile(null);
       
-      console.log(`[BusinessDashboard] CSV file ${csvFile.name} uploaded successfully`);
       toast.success(`File ${csvFile.name} uploaded successfully`);
     } else {
-      console.log('[BusinessDashboard] No CSV file to upload');
     }
     
     // Always refresh the file list to ensure we have the latest data

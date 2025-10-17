@@ -44,7 +44,6 @@ export class TransactionService extends BaseService implements ITransactionServi
           currency: 'USD',
           is_active: true
         });
-        console.log('[TransactionService] Created new wallet for user:', userId);
       }
 
       // Create transaction
@@ -153,7 +152,6 @@ export class TransactionService extends BaseService implements ITransactionServi
           currency: 'USD',
           is_active: true
         });
-        console.log('[TransactionService] Created new wallet for user:', userId);
       }
 
       // Create debit transaction for phone number purchase

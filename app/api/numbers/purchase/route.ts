@@ -20,15 +20,8 @@ export const dynamic = 'force-dynamic';
  * Purchase a phone number from Twilio
  */
 export async function POST(request: NextRequest) {
-  console.log('[Purchase API] Request headers:', {
-    cookie: request.headers.get('cookie'),
-    authorization: request.headers.get('authorization'),
-  });
-
   // Initialize authenticated Supabase client with user session
   const cookieStore = await cookies();
-
-  console.log('[Purchase API] Cookies from store:', cookieStore.getAll().map(c => ({ name: c.name, hasValue: !!c.value })));
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,9 +29,7 @@ export async function POST(request: NextRequest) {
     {
       cookies: {
         get(name: string) {
-          const value = cookieStore.get(name)?.value;
-          console.log(`[Purchase API] Cookie get: ${name} = ${value ? 'EXISTS' : 'NULL'}`);
-          return value;
+          return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: any) {
           try {
@@ -59,18 +50,10 @@ export async function POST(request: NextRequest) {
   );
 
   // Verify user is authenticated
-  // Use getUser() instead of getSession() for API routes - it validates the JWT
   const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-  console.log('[Purchase API] User check:', {
-    hasUser: !!user,
-    userId: user?.id,
-    userError: userError,
-    cookies: cookieStore.getAll().map(c => c.name), // Debug: show which cookies are available
-  });
-
   if (userError || !user) {
-    console.error('[Purchase API] No user or error:', userError);
+    console.error('[Purchase API] Authentication failed:', userError);
     return NextResponse.json(
       { error: 'Unauthorized - please log in' },
       { status: 401 }
@@ -137,7 +120,6 @@ export async function POST(request: NextRequest) {
         { status: 402 }
       );
     }
-    console.log('[WALLET TEST] Wallet balance check passed - userId:', userId, 'monthlyCost:', monthlyCost);
 
     // Step 2: Create database record FIRST with 'pending' status
     // This ensures we don't lose money if DB fails after Twilio purchase
@@ -158,7 +140,6 @@ export async function POST(request: NextRequest) {
       });
 
       pendingNumberId = pendingNumber.id;
-      console.log('[Purchase] Database record created:', pendingNumberId);
     } catch (dbError: any) {
       console.error('[Purchase] Failed to create database record:', dbError);
       throw new Error('Failed to create phone number record. Please check RLS policies are configured.');
@@ -181,14 +162,12 @@ export async function POST(request: NextRequest) {
       });
 
       twilioSid = twilioNumber.sid;
-      console.log('[Purchase] Twilio number purchased:', twilioSid);
     } catch (twilioError: any) {
       // Twilio purchase failed - delete the pending database record
       console.error('[Purchase] Twilio purchase failed:', twilioError);
       if (pendingNumberId) {
         try {
           await businessNumbersService.deleteNumber(pendingNumberId);
-          console.log('[Purchase] Cleaned up pending database record');
         } catch (cleanupError) {
           console.error('[Purchase] Failed to cleanup database record:', cleanupError);
         }
@@ -210,16 +189,13 @@ export async function POST(request: NextRequest) {
       ),
     });
 
-    console.log('[Purchase] Database record updated with Twilio details');
-
-    // Step 5: Deduct from wallet (ENABLED FOR WALLET TESTING)
+    // Step 5: Deduct from wallet
     await walletService.deductFunds(
       userId,
       monthlyCost,
       'USD',
       `Phone number purchase: ${phoneNumber}`
     );
-    console.log('[WALLET TEST] Wallet deduction completed - amount:', monthlyCost);
 
     // Step 6: Create transaction record (ENABLED FOR WALLET TESTING)
     await transactionService.createPhoneNumberPurchaseTransaction(
@@ -229,7 +205,6 @@ export async function POST(request: NextRequest) {
       savedNumber.id
     );
     transactionCreated = true;
-    console.log('[WALLET TEST] Transaction record created');
 
     return NextResponse.json({
       success: true,

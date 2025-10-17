@@ -109,26 +109,15 @@ export class TwilioNumbersService {
     }
 
     // TESTING MODE - Return mock response without API call
-    console.log('[TwilioNumbersService] Testing mode check:', {
-      isTestingMode: TwilioConfig.isTestingMode(),
-      envVar: process.env.TWILIO_TESTING_MODE,
-      configValue: TwilioConfig.TESTING_MODE,
-      envVarType: typeof process.env.TWILIO_TESTING_MODE,
-      envVarLength: process.env.TWILIO_TESTING_MODE?.length
-    });
-    
     if (TwilioConfig.isTestingMode()) {
-      console.log('[TwilioNumbersService] ✅ Using MOCK purchase - no real API call');
       return await mockPurchaseNumber(params);
-    } else {
-      console.log('[TwilioNumbersService] ⚠️ PRODUCTION MODE - making REAL API call!');
     }
 
     // PRODUCTION MODE - Make real Twilio API call (CHARGES MONEY)
     const client = getTwilioClient();
 
     try {
-      console.log('⚠️  PRODUCTION MODE: Making REAL Twilio API call - charges will apply');
+      console.warn('⚠️ PRODUCTION MODE: Making REAL Twilio API call - charges will apply');
 
       const incomingPhoneNumber = await client.incomingPhoneNumbers.create({
         phoneNumber: params.phoneNumber,
@@ -143,7 +132,7 @@ export class TwilioNumbersService {
         bundleSid: params.bundleSid,
       });
 
-      console.log('✅ Real Twilio purchase successful. SID:', incomingPhoneNumber.sid);
+      console.log('✅ Twilio purchase successful. SID:', incomingPhoneNumber.sid);
 
       return {
         sid: incomingPhoneNumber.sid,

@@ -61,15 +61,7 @@ export default function NumbersPage() {
   }, [])
 
   const loadData = useCallback(async () => {
-    console.log('[NumbersPage] ========================================')
-    console.log('[NumbersPage] loadData called - userId:', userId)
-    console.log('[NumbersPage] user object:', user)
-    console.log('[NumbersPage] user.id:', user?.id)
-    console.log('[NumbersPage] userId matches user.id:', userId === user?.id)
-    console.log('[NumbersPage] ========================================')
-
     if (!userId) {
-      console.log('[NumbersPage] No userId, skipping load')
       setLoading(false)
       return
     }
@@ -78,44 +70,16 @@ export default function NumbersPage() {
       setLoading(true)
       setError(null)
 
-      console.log('[NumbersPage] Fetching data for userId:', userId)
-
-      // Call services one by one to see which one is causing the issue
-      console.log('[NumbersPage] Step 1: Getting numbers...')
       const numbersData = await businessNumbersService.getAllNumbersByUserId(userId)
-      console.log('[NumbersPage] Step 1 RESULT - numbersData:', numbersData)
-      console.log('[NumbersPage] Step 1 RESULT - numbersData type:', Array.isArray(numbersData) ? 'array' : typeof numbersData)
-      console.log('[NumbersPage] Step 1 RESULT - numbersData length:', numbersData?.length)
-      console.log('[NumbersPage] Step 1 RESULT - numbersData JSON:', JSON.stringify(numbersData, null, 2))
-
-      console.log('[NumbersPage] Step 2: Getting stats...')
       const statsData = await businessNumbersService.getUsageStatistics(userId)
-      console.log('[NumbersPage] Step 2 RESULT - statsData:', statsData)
-
-      console.log('[NumbersPage] Step 3: Getting balance...')
       const balanceData = await fetchWalletBalance()
-      console.log('[NumbersPage] Step 3 RESULT - balanceData:', balanceData)
-
-      console.log('[NumbersPage] ALL DATA received:', {
-        numbersCount: numbersData?.length,
-        numbersType: Array.isArray(numbersData) ? 'array' : typeof numbersData,
-        numbersData: numbersData,
-        stats: statsData,
-        balance: balanceData
-      })
 
       // Ensure numbersData is an array
       const validNumbers = Array.isArray(numbersData) ? numbersData : []
-      console.log('[NumbersPage] ABOUT TO SET STATE with:', validNumbers.length, 'items')
-      console.log('[NumbersPage] validNumbers array:', validNumbers)
-
-      console.log('[NumbersPage] Calling setNumbers...')
+      
       setNumbers(validNumbers)
-      console.log('[NumbersPage] Calling setStats...')
       setStats(statsData)
-      console.log('[NumbersPage] Calling setAvailableBalance...')
       setAvailableBalance(balanceData)
-      console.log('[NumbersPage] All state set complete')
     } catch (error: any) {
       console.error('[NumbersPage] Error loading numbers data:', error)
       const errorMessage = error?.message || 'Failed to load phone numbers. Please try again.'

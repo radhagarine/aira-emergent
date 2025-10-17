@@ -78,7 +78,6 @@ export class FileService implements IFileService {
       this.validateFileByType(file, fileType);
 
       // Check if a file with the same name already exists for this business
-      console.log(`[FileService] Checking if file with name ${file.name} already exists for business ${businessId}`);
       const existingFile = await this.businessFilesRepository.getFileByOriginalName(
         businessId,
         file.name
@@ -86,7 +85,6 @@ export class FileService implements IFileService {
 
       if (existingFile) {
         // File with same name already exists - update it instead of creating a new one
-        console.log(`[FileService] File with name ${file.name} already exists, updating instead of creating new`);
 
         // Return a notification about the update in the metadata
         const updatedMetadata = {
@@ -129,7 +127,6 @@ export class FileService implements IFileService {
       }
 
       // If we reach here, no file with this name exists, proceed with normal upload
-      console.log(`[FileService] No existing file found, proceeding with new upload for ${file.name}`);
 
       // Upload file to storage
       const uploadResult = await this.fileStorageRepository.uploadFile(
@@ -295,7 +292,6 @@ export class FileService implements IFileService {
  */
   async deleteFile(fileIdOrName: string, businessId?: string): Promise<void> {
     try {
-      console.log(`[FileService] Deleting file: ${fileIdOrName}`);
 
       if (!fileIdOrName) {
         throw ServiceError.create(
@@ -308,7 +304,6 @@ export class FileService implements IFileService {
       // Check if we're dealing with a filename (contains dot) or ID
       if (fileIdOrName.includes('.')) {
         // This appears to be a filename
-        console.log(`[FileService] Input appears to be a filename: ${fileIdOrName}`);
 
         if (!businessId) {
           throw ServiceError.create(
@@ -319,13 +314,11 @@ export class FileService implements IFileService {
         }
 
         // Use the new repository method to delete by name
-        console.log(`[FileService] Deleting file by name: ${fileIdOrName} from business: ${businessId}`);
         await this.businessFilesRepository.deleteFileByOriginalName(businessId, fileIdOrName);
         // Invalidate caches
         this.cacheManager.clearByPrefix(`files:${businessId}`);
       } else {
         // This appears to be a file ID
-        console.log(`[FileService] Deleting file by ID: ${fileIdOrName}`);
 
         // Get the file first to obtain the businessId
         const file = await this.businessFilesRepository.getFileById(fileIdOrName);
@@ -349,7 +342,6 @@ export class FileService implements IFileService {
         }
       }
 
-      console.log(`[FileService] File deletion completed successfully`);
     } catch (error) {
       console.error(`[FileService] Error deleting file:`, error);
 
@@ -383,10 +375,7 @@ export class FileService implements IFileService {
     try {
       // Log auth state at service level
       const { data: { user } } = await this.repositoryFactory.getClient().auth.getUser();
-      console.log('[FileService] Auth user in service:', user?.id);
-      console.log('[FileService] Auth user email:', user?.email);
       
-      console.log(`[FileService] Uploading knowledge base file: ${file.name} for business ${businessId}`);
   
       // Validate business ID
       if (!businessId) {
@@ -410,7 +399,6 @@ export class FileService implements IFileService {
       this.validateKnowledgeBaseFile(file);
   
       // Upload the file using the internal uploadFile method
-      console.log(`[FileService] Calling internal uploadFile method for ${file.name}`);
       const result = await this.uploadFile(
         businessId,
         file,
@@ -422,7 +410,6 @@ export class FileService implements IFileService {
         onProgress
       );
   
-      console.log(`[FileService] File uploaded successfully:`, result);
   
       // Check if this was an update or a new file
       const wasFileUpdated: boolean = result.metadata && result.metadata.isUpdate === true ? true : false;
@@ -437,7 +424,6 @@ export class FileService implements IFileService {
         wasUpdated: wasFileUpdated
       };
   
-      console.log(`[FileService] Returning knowledge base file:`, knowledgeBaseFile);
       return knowledgeBaseFile;
     } catch (error) {
       console.error(`[FileService] Error uploading knowledge base file:`, error);
@@ -503,7 +489,6 @@ export class FileService implements IFileService {
    */
   async getKnowledgeBaseFiles(businessId: string): Promise<KnowledgeBaseFile[]> {
     try {
-      console.log(`[FileService] Getting knowledge base files for business: ${businessId}`);
 
       if (!businessId) {
         throw ServiceError.create(
@@ -525,7 +510,6 @@ export class FileService implements IFileService {
         BusinessFileType.KnowledgeBase
       );
 
-      console.log(`[FileService] Retrieved ${files.length} knowledge base files from repository`);
 
       // Transform the repository result into KnowledgeBaseFiles
       const knowledgeBaseFiles = files.map(file => ({
@@ -538,7 +522,6 @@ export class FileService implements IFileService {
       // Store in cache
       this.cacheManager.set(cacheKey, knowledgeBaseFiles);
 
-      console.log(`[FileService] Returning ${knowledgeBaseFiles.length} knowledge base files`);
       return knowledgeBaseFiles;
     } catch (error) {
       console.error(`[FileService] Error getting knowledge base files:`, error);

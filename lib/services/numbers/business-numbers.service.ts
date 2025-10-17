@@ -24,7 +24,6 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
   constructor(repositoryFactory: RepositoryFactory) {
     super(repositoryFactory);
     this.instanceId = ++BusinessNumbersService.instanceCount;
-    console.log(`[BusinessNumbersService] NEW INSTANCE CREATED #${this.instanceId}`);
     this.numbersRepository = this.repositoryFactory.getBusinessNumbersRepository();
   }
 
@@ -163,11 +162,8 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
 
   async getAllNumbersByUserId(userId: string): Promise<BusinessNumberWithBusiness[]> {
     try {
-      console.log(`[BusinessNumbersService #${this.instanceId}] getAllNumbersByUserId called for user:`, userId);
-
       // NO CACHING - just fetch directly from repository every time
       const result = await this.numbersRepository.getAllByUserId(userId);
-      console.log(`[BusinessNumbersService #${this.instanceId}] Repository returned:`, result?.length || 0, 'items');
 
       return result;
     } catch (error) {
