@@ -14,6 +14,11 @@ export interface IBusinessNumbersRepository extends IRepository {
   getById(id: string): Promise<BusinessNumberRow | null>;
 
   /**
+   * Get business number by phone number
+   */
+  getByPhoneNumber(phoneNumber: string): Promise<BusinessNumberRow | null>;
+
+  /**
    * Update business number
    */
   update(id: string, data: BusinessNumberUpdate): Promise<BusinessNumberRow>;

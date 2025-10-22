@@ -201,6 +201,68 @@ export class TransactionService extends BaseService implements ITransactionServi
     }
   }
 
+  async createRefundTransaction(
+    userId: string,
+    amount: number,
+    currency: Currency,
+    phoneNumberId: string,
+    reason: string
+  ): Promise<TransactionRow> {
+    try {
+      // Get wallet
+      const wallet = await this.walletRepository.getByUserId(userId);
+      if (!wallet) {
+        throw new Error('Wallet not found for user');
+      }
+
+      // Create credit transaction for refund
+      let transaction;
+      try {
+        transaction = await this.transactionRepository.create({
+          user_id: userId,
+          wallet_id: wallet.id,
+          type: TransactionType.CREDIT,
+          amount,
+          currency,
+          description: `Refund: ${reason}`,
+          status: TransactionStatus.COMPLETED,
+          business_number_id: phoneNumberId,
+          metadata: {
+            type: 'refund',
+            phone_number_id: phoneNumberId,
+            reason
+          }
+        });
+      } catch (error) {
+        console.warn('[TransactionService] Failed to create refund transaction with business_number_id, retrying without it:', error);
+        // Retry without business_number_id if foreign key constraint fails
+        transaction = await this.transactionRepository.create({
+          user_id: userId,
+          wallet_id: wallet.id,
+          type: TransactionType.CREDIT,
+          amount,
+          currency,
+          description: `Refund: ${reason}`,
+          status: TransactionStatus.COMPLETED,
+          business_number_id: null,
+          metadata: {
+            type: 'refund',
+            phone_number_id: phoneNumberId,
+            reason
+          }
+        });
+      }
+
+      // Clear cache
+      this.clearCache(`transactions_${userId}`);
+
+      return transaction;
+    } catch (error) {
+      console.error('Error creating refund transaction:', error);
+      throw error;
+    }
+  }
+
   async createStripePaymentTransaction(
     userId: string,
     amount: number,

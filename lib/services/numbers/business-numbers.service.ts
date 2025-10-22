@@ -78,6 +78,23 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
     }
   }
 
+  async getByPhoneNumber(phoneNumber: string): Promise<BusinessNumberRow | null> {
+    try {
+      const cacheKey = `business_number_phone_${phoneNumber}`;
+      const cached = this.getFromCache<BusinessNumberRow>(cacheKey);
+      if (cached) return cached;
+
+      const result = await this.numbersRepository.getByPhoneNumber(phoneNumber);
+      if (result) {
+        this.setCache(cacheKey, result, 300); // Cache for 5 minutes
+      }
+      return result;
+    } catch (error) {
+      console.error('Error getting business number by phone:', error);
+      throw error;
+    }
+  }
+
   async updateNumber(id: string, data: BusinessNumberUpdate): Promise<BusinessNumberRow> {
     try {
       // If updating phone number, validate it

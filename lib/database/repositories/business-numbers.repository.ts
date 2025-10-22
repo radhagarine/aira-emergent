@@ -75,6 +75,29 @@ export class BusinessNumbersRepository implements IBusinessNumbersRepository {
     }
   }
 
+  async getByPhoneNumber(phoneNumber: string): Promise<BusinessNumberRow | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from(this.tableName)
+        .select('*')
+        .eq('phone_number', phoneNumber)
+        .maybeSingle();
+
+      if (error) {
+        throw new DatabaseError(
+          `Failed to get business number by phone ${phoneNumber}`,
+          error.code,
+          error.message
+        );
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof DatabaseError) throw error;
+      throw new DatabaseError('Failed to get business number by phone', 'UNKNOWN', error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+
   async update(id: string, data: BusinessNumberUpdate): Promise<BusinessNumberRow> {
     try {
       const { data: result, error } = await this.supabase

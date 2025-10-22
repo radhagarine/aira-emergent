@@ -91,32 +91,37 @@ export class WalletRepository implements IWalletRepository {
 
   async updateBalance(id: string, amount: number, currency: Currency, operation: 'add' | 'subtract'): Promise<WalletRow> {
     try {
-      // Get current wallet
-      const wallet = await this.getById(id);
-      if (!wallet) {
+      // Use atomic database function to prevent race conditions
+      // Positive amounts for add, negative for subtract
+      const adjustedAmount = operation === 'subtract' ? -amount : amount;
+
+      const { data, error } = await this.supabase
+        .rpc('update_wallet_balance_atomic', {
+          p_wallet_id: id,
+          p_amount: adjustedAmount,
+          p_currency: currency
+        });
+
+      if (error) {
+        // Parse specific error messages
+        if (error.message?.includes('Insufficient balance')) {
+          throw new DatabaseError('Insufficient balance', 'INSUFFICIENT_BALANCE', error.message);
+        }
+        if (error.message?.includes('Wallet not found')) {
+          throw new DatabaseError('Wallet not found', 'NOT_FOUND', error.message);
+        }
+        if (error.message?.includes('Invalid currency')) {
+          throw new DatabaseError('Invalid currency', 'INVALID_INPUT', error.message);
+        }
+
+        throw new DatabaseError('Failed to update wallet balance', error.code || 'UNKNOWN', error.message);
+      }
+
+      if (!data) {
         throw new DatabaseError('Wallet not found', 'NOT_FOUND', `Wallet ${id} not found`);
       }
 
-      // Calculate new balance
-      const balanceField = currency === 'USD' ? 'balance_usd' : 'balance_inr';
-      const currentBalance = currency === 'USD' ? wallet.balance_usd : wallet.balance_inr;
-      const newBalance = operation === 'add'
-        ? currentBalance + amount
-        : currentBalance - amount;
-
-      // Ensure balance doesn't go negative
-      if (newBalance < 0) {
-        throw new DatabaseError('Insufficient balance', 'INSUFFICIENT_BALANCE',
-          `Cannot deduct ${amount} ${currency} from ${currentBalance} ${currency}`);
-      }
-
-      // Update balance
-      const updateData: WalletUpdate = {
-        [balanceField]: newBalance,
-        updated_at: new Date().toISOString()
-      };
-
-      return await this.update(id, updateData);
+      return data;
     } catch (error) {
       if (error instanceof DatabaseError) throw error;
       throw new DatabaseError('Unexpected error updating balance', 'UNKNOWN', String(error));

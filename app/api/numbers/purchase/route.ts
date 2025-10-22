@@ -121,6 +121,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Step 1.5: Check if phone number already exists
+    // This prevents duplicate purchases and avoids wasting a Twilio API call
+    const existingNumber = await businessNumbersService.getByPhoneNumber(phoneNumber);
+    if (existingNumber) {
+      return NextResponse.json(
+        {
+          error: 'This phone number is already registered in the system',
+          code: 'NUMBER_ALREADY_EXISTS',
+          existingNumber: {
+            id: existingNumber.id,
+            phone_number: existingNumber.phone_number,
+            is_active: existingNumber.is_active
+          }
+        },
+        { status: 409 } // 409 Conflict
+      );
+    }
+
     // Step 2: Create database record FIRST with 'pending' status
     // This ensures we don't lose money if DB fails after Twilio purchase
     try {
@@ -189,22 +207,53 @@ export async function POST(request: NextRequest) {
       ),
     });
 
-    // Step 5: Deduct from wallet
-    await walletService.deductFunds(
-      userId,
-      monthlyCost,
-      'USD',
-      `Phone number purchase: ${phoneNumber}`
-    );
+    // Step 5 & 6: Wallet deduction and transaction creation (CRITICAL - must succeed together)
+    try {
+      // Step 5: Deduct from wallet (atomic operation prevents race conditions)
+      await walletService.deductFunds(
+        userId,
+        monthlyCost,
+        'USD',
+        `Phone number purchase: ${phoneNumber}`
+      );
 
-    // Step 6: Create transaction record (ENABLED FOR WALLET TESTING)
-    await transactionService.createPhoneNumberPurchaseTransaction(
-      userId,
-      monthlyCost,
-      'USD',
-      savedNumber.id
-    );
-    transactionCreated = true;
+      // Step 6: Create transaction record (ENABLED FOR WALLET TESTING)
+      await transactionService.createPhoneNumberPurchaseTransaction(
+        userId,
+        monthlyCost,
+        'USD',
+        savedNumber.id
+      );
+      transactionCreated = true;
+    } catch (paymentError: any) {
+      // CRITICAL: Twilio purchase succeeded but wallet/transaction failed
+      // DO NOT release the Twilio number - money has been charged by Twilio!
+      console.error(
+        `[Purchase] CRITICAL: Twilio number ${twilioSid} purchased successfully (SID: ${twilioNumber.sid}) ` +
+        `but wallet deduction or transaction creation failed. ` +
+        `Error: ${paymentError.message}. ` +
+        `Number ${pendingNumberId} marked as inactive pending manual resolution.`
+      );
+
+      // Mark number as inactive with detailed notes for admin investigation
+      try {
+        await businessNumbersService.updateNumber(pendingNumberId!, {
+          is_active: false,
+          notes: `PAYMENT PROCESSING FAILED - Twilio purchase succeeded (${twilioNumber.sid}) ` +
+                 `but wallet/transaction failed: ${paymentError.message}. ` +
+                 `Purchased at ${new Date().toISOString()}. REQUIRES MANUAL INTERVENTION.`
+        });
+      } catch (updateError) {
+        console.error('[Purchase] Failed to update number status after payment error:', updateError);
+      }
+
+      // Return error to user
+      throw new Error(
+        'Phone number purchase from Twilio completed, but payment processing failed. ' +
+        'Your number has been reserved but not activated. Please contact support with reference ID: ' +
+        pendingNumberId
+      );
+    }
 
     return NextResponse.json({
       success: true,
