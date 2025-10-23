@@ -218,10 +218,9 @@ export class BusinessNumbersRepository implements IBusinessNumbersRepository {
         .select('*')
         .eq('business_id', businessId)
         .eq('is_primary', true)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        if (error.code === 'PGRST116') return null; // No rows returned
         throw new DatabaseError(
           `Failed to get primary number for business ${businessId}`,
           error.code,

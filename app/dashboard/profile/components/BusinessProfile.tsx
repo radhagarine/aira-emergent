@@ -23,15 +23,16 @@ import {
 
 // Import hooks from the service layer
 import { useAuth } from '@/components/providers/auth-provider';
-import { useBusinessService } from '@/components/providers/service-provider';
+import { useBusinessService, useBusinessNumbersService } from '@/components/providers/service-provider';
 import { ServiceError } from '@/lib/types/shared/error.types';
 import { BusinessResponse, BusinessCreateData } from '@/lib/services/business/types';
 import { BusinessType } from '@/lib/types/database/business.types';
+import { BusinessNumberRow } from '@/lib/types/database/numbers.types';
 
 interface FormData {
   businessName: string;
   address: string;
-  phone: string;
+  phoneNumberId: string; // Changed from phone to phoneNumberId
   email: string;
   type: BusinessType;
   profileImage: string | File | null;
@@ -40,19 +41,23 @@ interface FormData {
 const BusinessProfiles = () => {
   const { user } = useAuth();
   const businessService = useBusinessService();
+  const businessNumbersService = useBusinessNumbersService();
   const router = useRouter();
-  
+
   const [businesses, setBusinesses] = useState<BusinessResponse[]>([]);
+  const [availableNumbers, setAvailableNumbers] = useState<BusinessNumberRow[]>([]);
+  const [linkedNumbers, setLinkedNumbers] = useState<BusinessNumberRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0); // Force re-render key
 
   const initialFormState: FormData = {
     businessName: '',
     address: '',
-    phone: '',
+    phoneNumberId: 'none',
     email: '',
     type: 'restaurant',
     profileImage: null
@@ -71,7 +76,7 @@ const BusinessProfiles = () => {
     }
   }, [user]);
 
-  const fetchBusinesses = async () => {
+  const fetchBusinesses = async (clearCache = false) => {
     if (!user?.id) {
       return;
     }
@@ -79,11 +84,17 @@ const BusinessProfiles = () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Clear cache if requested (after phone number changes)
+      if (clearCache) {
+        businessService.clearUserCache(user.id);
+      }
+
       const data = await businessService.getBusinessProfile(user.id);
       setBusinesses(data);
     } catch (error) {
       console.error('[BusinessProfile] Error fetching businesses:', error);
-      
+
       if (error instanceof ServiceError) {
         console.error(`[BusinessProfile] Service error: ${error.message}, Code: ${error.code}`);
         setError(error.message);
@@ -98,19 +109,58 @@ const BusinessProfiles = () => {
     }
   };
 
+  // Fetch available phone numbers for the user
+  const fetchAvailableNumbers = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const numbers = await businessNumbersService.getAvailableNumbersForUser(user.id);
+      setAvailableNumbers(numbers);
+    } catch (error) {
+      console.error('[BusinessProfile] Error fetching available numbers:', error);
+      // Don't block the UI if this fails
+      setAvailableNumbers([]);
+    }
+  }, [user?.id, businessNumbersService]);
+
+  // Fetch numbers linked to a specific business
+  const fetchLinkedNumbers = useCallback(async (businessId: string) => {
+    try {
+      const numbers = await businessNumbersService.getNumbersByBusinessId(businessId);
+      setLinkedNumbers(numbers);
+      return numbers;
+    } catch (error) {
+      console.error('[BusinessProfile] Error fetching linked numbers:', error);
+      setLinkedNumbers([]);
+      return [];
+    }
+  }, [businessNumbersService]);
+
   // Handle edit business
-  const handleEdit = (business: BusinessResponse) => {
+  const handleEdit = useCallback(async (business: BusinessResponse) => {
     setSelectedBusiness(business);
+
+    // Fetch linked numbers for this business
+    const linked = await fetchLinkedNumbers(business.id);
+    const primaryNumber = linked.find(num => num.is_primary);
+
     setFormData({
       businessName: business.name,
       address: business.address || '',
-      phone: business.phone || '',
+      phoneNumberId: primaryNumber?.id || 'none',
       email: business.email || '',
       type: business.type || 'restaurant',
       profileImage: business.profile_image
     });
     setIsEditing(true);
-  };
+  }, [fetchLinkedNumbers]);
+
+  // Fetch available numbers when form opens
+  useEffect(() => {
+    if (isEditing && user?.id) {
+      fetchAvailableNumbers();
+    }
+  }, [isEditing, user?.id, fetchAvailableNumbers]);
 
   // Handle delete business
   const handleDelete = async (businessId: string) => {
@@ -155,36 +205,38 @@ const BusinessProfiles = () => {
     setError(null);
 
     try {
-      // Prepare business data
+      // Prepare business data (phone is not stored in business table anymore)
       const businessData: BusinessCreateData = {
         user_id: user.id,
         name: formData.businessName,
         address: formData.address || null,
-        phone: formData.phone || null,
+        phone: null, // Phone is handled via business_numbers table
         email: formData.email || null,
         type: formData.type || 'restaurant',
         profile_image: formData.profileImage
       };
 
+      let businessId: string;
+
       if (isEditing && selectedBusiness) {
         // Update existing business
-        const updateData = { 
+        const updateData = {
           name: businessData.name,
           address: businessData.address,
-          phone: businessData.phone,
+          phone: null, // Phone is handled separately
           email: businessData.email,
           type: businessData.type,
           profile_image: businessData.profile_image,
           details: {} // Add empty details object to satisfy TypeSpecificUpdateData
         };
-        
+
         const updatedBusiness = await businessService.updateBusiness(
-          selectedBusiness.id, 
+          selectedBusiness.id,
           updateData
         );
-        
-        toast.success("Business updated successfully");
-        
+
+        businessId = updatedBusiness.id;
+
         // Update businesses list with the updated business
         setBusinesses(prevBusinesses =>
           prevBusinesses.map(b => b.id === updatedBusiness.id ? updatedBusiness : b)
@@ -192,15 +244,45 @@ const BusinessProfiles = () => {
       } else {
         // Create new business
         const newBusiness = await businessService.createBusiness(businessData);
-        
-        toast.success("Business created successfully");
-        
+        businessId = newBusiness.id;
+
         // Add the new business to the list
         setBusinesses(prevBusinesses => [...prevBusinesses, newBusiness]);
       }
 
-      // Reset form after successful operation
+      // Handle phone number linking/unlinking
+      try {
+        // Step 1: First, unlink ALL currently linked numbers (if any)
+        if (isEditing && linkedNumbers.length > 0) {
+          for (const number of linkedNumbers) {
+            await businessNumbersService.unlinkNumberFromBusiness(number.id);
+          }
+        }
+
+        // Step 2: Then, if a new number is selected (not "none"), link it as primary
+        if (formData.phoneNumberId && formData.phoneNumberId !== 'none') {
+          await businessNumbersService.linkNumberToBusiness(
+            formData.phoneNumberId,
+            businessId,
+            true // Make it primary
+          );
+        }
+
+      } catch (linkError) {
+        console.error('[BusinessProfile] Error managing phone number links:', linkError);
+        toast.error("Business saved but phone number linking failed");
+      }
+
+      toast.success(isEditing ? "Business updated successfully" : "Business created successfully");
+
+      // Reset form
       resetForm();
+
+      // Refresh with cache cleared to get fresh phone number data
+      await fetchBusinesses(true);
+
+      // Force BusinessCard components to re-render
+      setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error('[BusinessProfile] Error in form submission:', error);
       
@@ -223,6 +305,8 @@ const BusinessProfiles = () => {
     setSelectedBusiness(null);
     setIsEditing(false);
     setError(null);
+    setAvailableNumbers([]);
+    setLinkedNumbers([]);
   };
 
   const handleViewCalendar = (businessId: string) => {
@@ -286,7 +370,7 @@ const BusinessProfiles = () => {
             {businesses.length > 0 ? (
               businesses.map((business) => (
                 <BusinessCard
-                  key={business.id}
+                  key={`${business.id}-${refreshKey}`}
                   business={business}
                   onEdit={() => handleEdit(business)}
                   onDelete={handleDelete}
@@ -355,14 +439,39 @@ const BusinessProfiles = () => {
                     <Phone className="h-4 w-4 text-[#8B0000] mr-2" />
                     Phone Number
                   </Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="Enter your phone number"
-                    type="tel"
-                    className="h-12 w-full"
-                  />
+                  <Select
+                    value={formData.phoneNumberId}
+                    onValueChange={(value) => setFormData({ ...formData, phoneNumberId: value })}
+                  >
+                    <SelectTrigger className="h-12 w-full">
+                      <SelectValue placeholder="Select a purchased phone number" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No phone number</SelectItem>
+                      {(linkedNumbers || []).map((number) => (
+                        <SelectItem key={number.id} value={number.id}>
+                          {number.phone_number} (Currently linked)
+                        </SelectItem>
+                      ))}
+                      {(availableNumbers || []).map((number) => (
+                        <SelectItem key={number.id} value={number.id}>
+                          {number.phone_number}
+                          {number.display_name ? ` (${number.display_name})` : ''}
+                        </SelectItem>
+                      ))}
+                      {!linkedNumbers.length && !availableNumbers.length && (
+                        <div className="p-4 text-sm text-center text-muted-foreground">
+                          <p className="mb-2">No phone numbers available.</p>
+                          <p className="text-xs">
+                            Purchase a phone number in the <span className="text-[#8B0000] font-semibold">Numbers</span> page first.
+                          </p>
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select from your purchased phone numbers or leave empty
+                  </p>
                 </div>
 
                 <div className="space-y-2">

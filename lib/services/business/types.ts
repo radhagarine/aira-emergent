@@ -86,7 +86,7 @@ export interface IBusinessService {
   ): Promise<string>;
   deleteBusiness(businessId: string): Promise<void>;
   getTypeSpecificService(businessType: string): Promise<ITypeSpecificBusinessService<any>>;
-  
+  clearUserCache(userId: string): void;
 }
 
 /**

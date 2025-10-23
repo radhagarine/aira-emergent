@@ -271,6 +271,122 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
     }
   }
 
+  /**
+   * Get phone numbers available for linking to a business
+   * Returns numbers that are:
+   * - Owned by the user
+   * - Active
+   * - Not currently linked to any business (business_id is null)
+   */
+  async getAvailableNumbersForUser(userId: string): Promise<BusinessNumberRow[]> {
+    try {
+      const cacheKey = `available_numbers_${userId}`;
+      const cached = this.getFromCache<BusinessNumberRow[]>(cacheKey);
+      if (cached) return cached;
+
+      const allNumbers = await this.getAllNumbersByUserId(userId);
+      // Filter for active numbers not linked to any business
+      const availableNumbers = allNumbers
+        .filter(num => num.is_active && !num.business_id)
+        .map(num => {
+          // Extract just the number data (not the joined business data)
+          const { business, ...numberData } = num as any;
+          return numberData as BusinessNumberRow;
+        });
+
+      this.setCache(cacheKey, availableNumbers, 300); // Cache for 5 minutes
+      return availableNumbers;
+    } catch (error) {
+      console.error('Error getting available numbers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Link a phone number to a business
+   * Sets the business_id field and optionally makes it primary
+   */
+  async linkNumberToBusiness(
+    numberId: string,
+    businessId: string,
+    makePrimary: boolean = false
+  ): Promise<BusinessNumberRow> {
+    try {
+      // Get the number to verify it's not already linked
+      const number = await this.numbersRepository.getById(numberId);
+      if (!number) {
+        throw new Error('Phone number not found');
+      }
+
+      if (number.business_id && number.business_id !== businessId) {
+        throw new Error('Phone number is already linked to another business');
+      }
+
+      // If making this primary, unset other primary numbers for this business
+      if (makePrimary) {
+        const existingPrimary = await this.numbersRepository.getPrimaryByBusinessId(businessId);
+        if (existingPrimary && existingPrimary.id !== numberId) {
+          await this.numbersRepository.update(existingPrimary.id, { is_primary: false });
+        }
+      }
+
+      // Link the number to the business
+      const result = await this.numbersRepository.update(numberId, {
+        business_id: businessId,
+        is_primary: makePrimary,
+        updated_at: new Date().toISOString()
+      });
+
+      // Clear caches
+      this.clearCacheForBusiness(businessId);
+      this.clearCache(`business_number_${numberId}`);
+      this.clearCache(`available_numbers_${number.user_id}`);
+      this.clearCache(`primary_number_${businessId}`);
+
+      return result;
+    } catch (error) {
+      console.error('Error linking number to business:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unlink a phone number from a business
+   * Sets business_id to null and is_primary to false
+   */
+  async unlinkNumberFromBusiness(numberId: string): Promise<BusinessNumberRow> {
+    try {
+      const number = await this.numbersRepository.getById(numberId);
+      if (!number) {
+        throw new Error('Phone number not found');
+      }
+
+      if (!number.business_id) {
+        throw new Error('Phone number is not linked to any business');
+      }
+
+      const businessId = number.business_id;
+
+      // Unlink the number
+      const result = await this.numbersRepository.update(numberId, {
+        business_id: null,
+        is_primary: false,
+        updated_at: new Date().toISOString()
+      });
+
+      // Clear caches
+      this.clearCacheForBusiness(businessId);
+      this.clearCache(`business_number_${numberId}`);
+      this.clearCache(`available_numbers_${number.user_id}`);
+      this.clearCache(`primary_number_${businessId}`);
+
+      return result;
+    } catch (error) {
+      console.error('Error unlinking number from business:', error);
+      throw error;
+    }
+  }
+
   async validatePhoneNumber(phoneNumber: string, excludeId?: string): Promise<ValidationResult> {
     try {
       const errors: string[] = [];
