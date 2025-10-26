@@ -121,19 +121,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1.5: Check if phone number already exists
+    // Step 1.5: Check if phone number already exists (bypasses RLS for global uniqueness check)
     // This prevents duplicate purchases and avoids wasting a Twilio API call
-    const existingNumber = await businessNumbersService.getByPhoneNumber(phoneNumber);
-    if (existingNumber) {
+    const numbersRepository = repositoryFactory.getBusinessNumbersRepository();
+    const isNumberInUse = await numbersRepository.isPhoneNumberInUse(phoneNumber);
+    if (isNumberInUse) {
       return NextResponse.json(
         {
           error: 'This phone number is already registered in the system',
-          code: 'NUMBER_ALREADY_EXISTS',
-          existingNumber: {
-            id: existingNumber.id,
-            phone_number: existingNumber.phone_number,
-            is_active: existingNumber.is_active
-          }
+          code: 'NUMBER_ALREADY_EXISTS'
         },
         { status: 409 } // 409 Conflict
       );
@@ -171,11 +167,12 @@ export async function POST(request: NextRequest) {
       twilioNumber = await twilioService.purchaseNumber({
         phoneNumber,
         friendlyName: displayName,
-        voiceUrl: `${webhookBaseUrl}/api/voice-agent/handle-call`,
+        voiceUrl: `${webhookBaseUrl}/call`,
         voiceMethod: 'POST',
-        smsUrl: `${webhookBaseUrl}/api/voice-agent/handle-sms`,
-        smsMethod: 'POST',
-        statusCallback: `${webhookBaseUrl}/api/voice-agent/status`,
+        // SMS webhook not implemented yet - leaving empty
+        // smsUrl: undefined,
+        // smsMethod: undefined,
+        statusCallback: `${webhookBaseUrl}/status`,
         statusCallbackMethod: 'POST',
       });
 

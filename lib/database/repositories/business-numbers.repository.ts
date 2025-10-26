@@ -399,23 +399,30 @@ export class BusinessNumbersRepository implements IBusinessNumbersRepository {
 
   async isPhoneNumberInUse(phoneNumber: string, excludeId?: string): Promise<boolean> {
     try {
-      let query = this.supabase
-        .from(this.tableName)
-        .select('id')
-        .eq('phone_number', phoneNumber);
+      // Use database function to bypass RLS for duplicate checking
+      // This is safe because it only returns a boolean, not actual data
+      const { data, error } = await this.supabase
+        .rpc('phone_number_exists', { p_phone_number: phoneNumber });
 
-      if (excludeId) {
-        query = query.neq('id', excludeId);
-      }
-
-      const { data, error } = await query.single();
-
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw new DatabaseError(
           `Failed to check if phone number ${phoneNumber} is in use`,
           error.code,
           error.message
         );
+      }
+
+      // If excludeId is provided and number exists, check if it's the excluded one
+      if (data && excludeId) {
+        const { data: existingNumber } = await this.supabase
+          .from(this.tableName)
+          .select('id')
+          .eq('phone_number', phoneNumber)
+          .eq('id', excludeId)
+          .maybeSingle();
+
+        // If the existing number is the one we're excluding, it's not "in use" by others
+        return !existingNumber;
       }
 
       return !!data;
