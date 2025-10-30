@@ -208,7 +208,20 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
 
   async setPrimaryNumber(id: string, businessId: string): Promise<BusinessNumberRow> {
     try {
+      // Get the number to update business_v2.phone
+      const number = await this.numbersRepository.getById(id);
+      if (!number) {
+        throw new Error('Phone number not found');
+      }
+
       const result = await this.numbersRepository.setPrimary(id, businessId);
+
+      // Update business_v2.phone field to the new primary number
+      const businessRepository = this.repositoryFactory.getBusinessRepository();
+      await businessRepository.updateBusiness(businessId, {
+        phone: number.phone_number
+      });
+
       this.clearCacheForBusiness(businessId);
       return result;
     } catch (error) {
@@ -337,6 +350,14 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
         updated_at: new Date().toISOString()
       });
 
+      // If this is a primary number, update business_v2.phone field for consistency
+      if (makePrimary) {
+        const businessRepository = this.repositoryFactory.getBusinessRepository();
+        await businessRepository.updateBusiness(businessId, {
+          phone: number.phone_number
+        });
+      }
+
       // Clear caches
       this.clearCacheForBusiness(businessId);
       this.clearCache(`business_number_${numberId}`);
@@ -366,6 +387,7 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
       }
 
       const businessId = number.business_id;
+      const wasPrimary = number.is_primary;
 
       // Unlink the number
       const result = await this.numbersRepository.update(numberId, {
@@ -373,6 +395,14 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
         is_primary: false,
         updated_at: new Date().toISOString()
       });
+
+      // If this was a primary number, clear business_v2.phone field
+      if (wasPrimary) {
+        const businessRepository = this.repositoryFactory.getBusinessRepository();
+        await businessRepository.updateBusiness(businessId, {
+          phone: null
+        });
+      }
 
       // Clear caches
       this.clearCacheForBusiness(businessId);

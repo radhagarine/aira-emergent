@@ -18,8 +18,10 @@ import { toast } from 'sonner';
 
 import {
   Building2, MapPin, Phone, Mail, ImageIcon,
-  Factory, Loader2, Plus, X
+  Factory, Loader2, Plus, X, Clock
 } from 'lucide-react';
+
+import { TIMEZONE_OPTIONS } from '@/lib/utils/timezones';
 
 // Import hooks from the service layer
 import { useAuth } from '@/components/providers/auth-provider';
@@ -35,6 +37,7 @@ interface FormData {
   phoneNumberId: string; // Changed from phone to phoneNumberId
   email: string;
   type: BusinessType;
+  timezone: string;
   profileImage: string | File | null;
 }
 
@@ -60,6 +63,7 @@ const BusinessProfiles = () => {
     phoneNumberId: 'none',
     email: '',
     type: 'restaurant',
+    timezone: 'America/New_York', // Default timezone
     profileImage: null
   };
 
@@ -150,6 +154,7 @@ const BusinessProfiles = () => {
       phoneNumberId: primaryNumber?.id || 'none',
       email: business.email || '',
       type: business.type || 'restaurant',
+      timezone: business.timezone || 'America/New_York',
       profileImage: business.profile_image
     });
     setIsEditing(true);
@@ -213,6 +218,7 @@ const BusinessProfiles = () => {
         phone: null, // Phone is handled via business_numbers table
         email: formData.email || null,
         type: formData.type || 'restaurant',
+        timezone: formData.timezone || 'America/New_York',
         profile_image: formData.profileImage
       };
 
@@ -226,6 +232,7 @@ const BusinessProfiles = () => {
           phone: null, // Phone is handled separately
           email: businessData.email,
           type: businessData.type,
+          timezone: businessData.timezone,
           profile_image: businessData.profile_image,
           details: {} // Add empty details object to satisfy TypeSpecificUpdateData
         };
@@ -487,6 +494,31 @@ const BusinessProfiles = () => {
                     type="email"
                     className="h-12 w-full"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="timezone" className="flex items-center text-sm font-medium">
+                    <Clock className="h-4 w-4 text-[#8B0000] mr-2" />
+                    Business Timezone *
+                  </Label>
+                  <Select
+                    value={formData.timezone}
+                    onValueChange={(value) => setFormData({ ...formData, timezone: value })}
+                  >
+                    <SelectTrigger className="h-12 w-full">
+                      <SelectValue placeholder="Select your business timezone" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {TIMEZONE_OPTIONS.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label} ({tz.offset})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This timezone will be used for appointment scheduling and voice bot interactions
+                  </p>
                 </div>
 
                 <div className="space-y-2">

@@ -37,11 +37,12 @@ export interface AppointmentResponse {
   id: string;
   business_id: string;
   user_id: string;
-  start_time: string;
-  end_time: string;
+  start_time: string; // Always stored as UTC ISO string
+  end_time: string; // Always stored as UTC ISO string
   description: string | null;
   party_size: number;
   status: AppointmentStatus;
+  user_timezone?: string; // IANA timezone identifier for reference (e.g., "America/New_York")
   created_at: string;
   updated_at: string;
 }
@@ -52,22 +53,24 @@ export interface AppointmentResponse {
 export interface AppointmentCreateData {
   business_id: string;
   user_id: string;
-  start_time: string | Date;
-  end_time: string | Date;
+  start_time: string | Date; // Will be converted to UTC before storage
+  end_time: string | Date; // Will be converted to UTC before storage
   description?: string | null;
   party_size?: number;
   status?: AppointmentStatus;
+  user_timezone?: string; // IANA timezone identifier (optional, defaults to browser timezone)
 }
 
 /**
  * Data for updating an existing appointment
  */
 export interface AppointmentUpdateData {
-  start_time?: string | Date;
-  end_time?: string | Date;
+  start_time?: string | Date; // Will be converted to UTC before storage
+  end_time?: string | Date; // Will be converted to UTC before storage
   description?: string | null;
   party_size?: number;
   status?: AppointmentStatus;
+  user_timezone?: string; // IANA timezone identifier
 }
 
 /**
@@ -76,6 +79,20 @@ export interface AppointmentUpdateData {
 export interface CalendarData {
   appointments: AppointmentResponse[];
   capacity: BusinessCapacity;
+}
+
+/**
+ * Data for creating an appointment from voice bot with natural language time
+ */
+export interface VoiceAppointmentCreateData {
+  business_id: string;
+  user_id: string;
+  natural_language_time: string; // e.g., "tomorrow 10 AM", "today 3 PM"
+  user_timezone?: string; // IANA timezone identifier (optional - will use business timezone if not provided)
+  description?: string | null;
+  party_size?: number;
+  status?: AppointmentStatus;
+  duration_minutes?: number; // Duration in minutes (default: 60)
 }
 
 /**
@@ -152,7 +169,14 @@ export interface IAppointmentService {
     businessId: string,
     dateRange: DateRange
   ): Promise<UtilizationSummary>;
-  
+
+  /**
+   * Create an appointment from voice bot with natural language time parsing
+   */
+  createAppointmentFromVoice(
+    data: VoiceAppointmentCreateData
+  ): Promise<{ success: boolean; message: string; appointment?: AppointmentResponse }>;
+
   /**
    * Testing utility to enable test mode
    * @internal For testing purposes only

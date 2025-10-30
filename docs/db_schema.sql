@@ -133,6 +133,7 @@ CREATE TABLE public.business_v2 (
   phone text UNIQUE,
   email text,
   profile_image text,
+  timezone text DEFAULT 'America/New_York'::text CHECK (timezone IS NULL OR timezone ~ '^[A-Z][a-zA-Z_]*(/[A-Z][a-zA-Z_]*)*$'::text),
   CONSTRAINT business_v2_pkey PRIMARY KEY (id),
   CONSTRAINT business_original_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
