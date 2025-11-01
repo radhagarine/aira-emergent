@@ -1,16 +1,13 @@
 'use client'
 
 import OverviewPage from './components/BusinessOverview'
-import { AppProvider } from '@/components/providers/app-provider';
-
 
 export default function BusinessOverviewPage() {
+  // REMOVED: AppProvider wrapper - providers already exist in layouts
   return (
     <div className="p-4 sm:p-6">
       <div className="space-y-6">
-        <AppProvider>
-          <OverviewPage />
-        </AppProvider>
+        <OverviewPage />
       </div>
     </div>
   )

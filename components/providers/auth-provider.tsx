@@ -1,3 +1,5 @@
+'use client';
+
 // src/components/providers/auth-provider.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useSupabase } from './supabase-provider';
@@ -9,6 +11,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null; data: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
@@ -35,39 +38,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    // Set up auth state listener to log token refresh events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[Auth] Auth state change event:', event);
-      console.log('[Auth] New session available:', !!session);
-      
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('[Auth] Token was refreshed');
-      }
-    });
-    
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
-  
-  // Effect to initialize auth state and set up listeners
+  // Single effect to initialize auth state and set up listeners
   useEffect(() => {
     // Set loading state
     setIsLoading(true);
-    
+
     // Get initial session
     const initializeAuth = async () => {
       try {
-        // Get current session
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
+        // Get current session with error handling for cookie parsing
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.warn('[Auth] Session error (this may be normal on first load):', error.message);
+        }
+
         if (currentSession) {
           setSession(currentSession);
           setUser(currentSession.user);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        // Don't set loading to false immediately on error, let it retry
       } finally {
         setIsLoading(false);
       }
@@ -78,7 +70,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, currentSession) => {
+      (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
@@ -98,11 +90,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email,
         password
       });
-      
+
       return { error };
     } catch (error) {
       return { error: error as Error };
     }
+  };
+
+  // Sign in with Google OAuth
+  const signInWithGoogle = async () => {
+    try {
+      // Get appropriate redirect URL for current environment
+      const redirectUrl = getRedirectUrl();
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl
+        }
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+      throw error;
+    }
+  };
+
+  // Helper to get redirect URL based on environment
+  const getRedirectUrl = () => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/auth/callback`;
+    }
+
+    // When not in browser, use the environment variable if available
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+      return `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
+    }
+
+    // Fallback
+    return 'https://aira.aivn.ai/auth/callback';
   };
 
   // Sign up with email and password
@@ -131,10 +157,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Reset password
   const resetPassword = async (email: string) => {
     try {
+      // Use environment variable for site URL, fallback to window.location.origin
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: `${siteUrl}/reset-password`
       });
-      
+
       return { error };
     } catch (error) {
       return { error: error as Error };
@@ -147,6 +176,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     session,
     isLoading,
     signIn,
+    signInWithGoogle,
     signUp,
     signOut,
     resetPassword

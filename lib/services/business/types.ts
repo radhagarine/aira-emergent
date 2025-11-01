@@ -14,6 +14,7 @@ export interface BusinessCreateData {
   address?: string | null;
   phone?: string | null;
   email?: string | null;
+  timezone?: string | null; // IANA timezone identifier
   profile_image?: string | File | null;
   type?: BusinessType;
 }
@@ -23,6 +24,7 @@ export interface BusinessUpdateData {
   address?: string | null;
   phone?: string | null;
   email?: string | null;
+  timezone?: string | null; // IANA timezone identifier
   profile_image?: string | File | null;
 }
 
@@ -86,7 +88,7 @@ export interface IBusinessService {
   ): Promise<string>;
   deleteBusiness(businessId: string): Promise<void>;
   getTypeSpecificService(businessType: string): Promise<ITypeSpecificBusinessService<any>>;
-  
+  clearUserCache(userId: string): void;
 }
 
 /**

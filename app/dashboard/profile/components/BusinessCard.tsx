@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 
 import { BusinessResponse } from '@/lib/services/business/types';
+import { useBusinessNumbersService } from '@/components/providers/service-provider';
 
 interface BusinessCardProps {
   business: BusinessResponse;
@@ -17,12 +18,42 @@ interface BusinessCardProps {
 
 
 
-const BusinessCard: React.FC<BusinessCardProps> = ({ 
-  business, 
-  onEdit, 
-  onDelete, 
-  onViewCalendar 
+const BusinessCard: React.FC<BusinessCardProps> = ({
+  business,
+  onEdit,
+  onDelete,
+  onViewCalendar
 }) => {
+  const businessNumbersService = useBusinessNumbersService();
+  const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
+  const [loadingPhone, setLoadingPhone] = useState(true);
+
+  // Fetch linked phone number for this business
+  useEffect(() => {
+    const fetchPhoneNumber = async () => {
+      try {
+        setLoadingPhone(true);
+        const primaryNumber = await businessNumbersService.getPrimaryNumber(business.id);
+        setPhoneNumber(primaryNumber?.phone_number || null);
+      } catch (error: any) {
+        // Silently handle 406 errors (happens when no primary number exists yet)
+        if (error?.message?.includes('406') || error?.code === '406') {
+          setPhoneNumber(null);
+        } else {
+          console.error('[BusinessCard] Error fetching phone number:', error);
+          setPhoneNumber(null);
+        }
+      } finally {
+        setLoadingPhone(false);
+      }
+    };
+
+    fetchPhoneNumber();
+  }, [business.id, business.updated_at, businessNumbersService]); // Re-fetch when business updates
+
+  // Determine which phone to display: linked number or legacy business.phone
+  const displayPhone = phoneNumber || business.phone || 'No phone provided';
+
   // Create separate handler functions to prevent event bubbling
   const handleEdit = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -123,7 +154,9 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
 
           <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300">
             <Phone className="h-4 w-4 text-red-800 dark:text-red-400 flex-shrink-0" />
-            <p className="text-muted-foreground text-xs sm:text-sm">{business.phone || 'No phone provided'}</p>
+            <p className="text-muted-foreground text-xs sm:text-sm">
+              {loadingPhone ? 'Loading...' : displayPhone}
+            </p>
           </div>
 
           <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300">

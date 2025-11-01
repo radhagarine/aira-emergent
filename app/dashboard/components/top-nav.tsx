@@ -3,10 +3,10 @@
 import { FC, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Bell, Settings, LogOut, ChevronRight, Home, Menu } from 'lucide-react'
+import { Bell, Settings, LogOut, ChevronRight, Home, Menu, Wallet } from 'lucide-react'
 import { User2 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { useAuth } from '@/components/providers/supabase-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 import {
@@ -24,9 +24,12 @@ interface TopNavProps {
 
 export const TopNav: FC<TopNavProps> = ({ onMenuClick }) => {
   const pathname = usePathname()
-  const { user, userName, signOut } = useAuth()
+  const { user, signOut } = useAuth()
   const [imageError, setImageError] = useState(false)
-  
+
+  // Get user name from user metadata or email
+  const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'
+
   // Get avatar URL from user metadata
   const userAvatar = user?.user_metadata?.picture || user?.user_metadata?.avatar_url
 
@@ -35,12 +38,12 @@ export const TopNav: FC<TopNavProps> = ({ onMenuClick }) => {
     const segments = pathname.split('/').filter(Boolean)
     return [
       { name: 'Home', href: '/' },
-      { name: 'Dashboard', href: '/dashboard/overview' },
-      ...(segments.length > 1 
-        ? [{ 
-            name: segments[segments.length - 1].charAt(0).toUpperCase() + segments[segments.length - 1].slice(1), 
-            href: pathname 
-          }] 
+      { name: 'Dashboard', href: '/dashboard' },
+      ...(segments.length > 1
+        ? [{
+            name: segments[segments.length - 1].charAt(0).toUpperCase() + segments[segments.length - 1].slice(1),
+            href: pathname
+          }]
         : []
       )
     ]
@@ -104,6 +107,16 @@ export const TopNav: FC<TopNavProps> = ({ onMenuClick }) => {
               <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300 group-hover:text-red-800 dark:group-hover:text-red-400" />
               <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
             </button>
+
+            {/* Wallet Button */}
+            <Link href="/dashboard/funds" className="p-2 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-full transition-colors group">
+              <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300 group-hover:text-red-800 dark:group-hover:text-red-400" />
+            </Link>
+
+            {/* Settings Button */}
+            <Link href="/dashboard/settings" className="p-2 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-full transition-colors group">
+              <Settings className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300 group-hover:text-red-800 dark:group-hover:text-red-400" />
+            </Link>
 
             {/* Theme Toggle Button */}
             <ThemeToggle />

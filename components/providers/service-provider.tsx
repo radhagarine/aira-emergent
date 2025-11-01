@@ -1,6 +1,7 @@
+'use client';
+
 // src/components/providers/service-provider.tsx
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useSupabase } from '@/components/providers/supabase-provider';
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database/database.types';
 
@@ -28,32 +29,38 @@ import { ServiceBusinessService } from '@/lib/services/business/service-business
 // Import repository factory
 import { RepositoryFactory } from '@/lib/database/repository.factory';
 
-// Define the service context type
+// Enhanced service context type with all services (merged from ServiceContextType and EnhancedServiceContextType)
 interface ServiceContextType {
   businessService: IBusinessService;
   appointmentService: IAppointmentService;
   fileService: IFileService;
   businessNumbersService: IBusinessNumbersService;
+  restaurantService: IRestaurantService;
+  retailService: IRetailService;
+  serviceBusinessService: IServiceBusinessService;
   reloadServices: () => void;
 }
 
 // Create the context with a default empty value
 const ServiceContext = createContext<ServiceContextType | null>(null);
 
-// Define provider props to allow for dependency injection
+// Define provider props to allow for dependency injection (merged with EnhancedServiceProviderProps)
 interface ServiceProviderProps {
   children: ReactNode;
   businessServiceOverride?: IBusinessService;
   appointmentServiceOverride?: IAppointmentService;
   fileServiceOverride?: IFileService;
   businessNumbersServiceOverride?: IBusinessNumbersService;
+  restaurantServiceOverride?: IRestaurantService;
+  retailServiceOverride?: IRetailService;
+  serviceBusinessServiceOverride?: IServiceBusinessService;
   repositoryFactoryOverride?: RepositoryFactory;
   supabaseClientOverride?: SupabaseClient<Database>;
 }
 
 /**
  * ServiceProvider component that makes all application services available
- * via React Context.
+ * via React Context. This is now the ONLY service provider (merged with EnhancedServiceProvider).
  */
 export const ServiceProvider: React.FC<ServiceProviderProps> = ({
   children,
@@ -61,47 +68,46 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
   appointmentServiceOverride,
   fileServiceOverride,
   businessNumbersServiceOverride,
+  restaurantServiceOverride,
+  retailServiceOverride,
+  serviceBusinessServiceOverride,
   repositoryFactoryOverride,
   supabaseClientOverride
 }) => {
-  
-  // Get Supabase client from provider if not overridden
-  const supabaseContext = useSupabase();
-  const supabaseClient = supabaseClientOverride || supabaseContext.supabase;
+  // Use ref to ensure we keep the same factory instance across renders
+  const factoryRef = React.useRef<RepositoryFactory | null>(null);
 
-  console.log('[ServiceProvider] Creating repository factory with client');
-  // Initialize repository factory with supabase client if provided
-  const repositoryFactory = repositoryFactoryOverride || 
-    (supabaseClient ? RepositoryFactory.createWithClient(supabaseClient) : RepositoryFactory.getInstance());
-  console.log('[ServiceProvider] Repository factory created successfully');
-  
-  
-  // Initialize or use provided service instances
-  const services = React.useMemo(() => {
-    // Create services with repository factory
-    const business = businessServiceOverride || new BusinessService(repositoryFactory);
-    const appointment = appointmentServiceOverride || new AppointmentService(repositoryFactory);
-    const file = fileServiceOverride || new FileService(repositoryFactory);
-    const businessNumbers = businessNumbersServiceOverride || new BusinessNumbersService(repositoryFactory);
+  // Initialize factory only once
+  if (!factoryRef.current) {
+    factoryRef.current = repositoryFactoryOverride || RepositoryFactory.getInstance();
+  }
 
-    return {
-      businessService: business,
-      appointmentService: appointment,
-      fileService: file,
-      businessNumbersService: businessNumbers,
+  const repositoryFactory = factoryRef.current;
+
+  // Use refs to ensure we keep the same service instances across renders
+  const servicesRef = React.useRef<ServiceContextType | null>(null);
+
+  // Initialize services only once
+  if (!servicesRef.current) {
+    servicesRef.current = {
+      businessService: businessServiceOverride || new BusinessService(repositoryFactory),
+      appointmentService: appointmentServiceOverride || new AppointmentService(repositoryFactory),
+      fileService: fileServiceOverride || new FileService(repositoryFactory),
+      businessNumbersService: businessNumbersServiceOverride || new BusinessNumbersService(repositoryFactory),
+      restaurantService: restaurantServiceOverride || new RestaurantService(repositoryFactory),
+      retailService: retailServiceOverride || new RetailService(repositoryFactory),
+      serviceBusinessService: serviceBusinessServiceOverride || new ServiceBusinessService(repositoryFactory),
       reloadServices: () => {
         // Reset repository factory cache
         repositoryFactory.reset();
+        // Force recreation of services on next access
+        servicesRef.current = null;
       }
     };
-  }, [
-    repositoryFactory,
-    businessServiceOverride,
-    appointmentServiceOverride,
-    fileServiceOverride,
-    businessNumbersServiceOverride
-  ]);
-  
+  }
+
+  const services = servicesRef.current;
+
   return (
     <ServiceContext.Provider value={services}>
       {children}
@@ -153,95 +159,21 @@ export const useBusinessNumbersService = (): IBusinessNumbersService => {
 };
 
 /**
- * Enhanced service context type with type-specific services
+ * EnhancedServiceProvider is now an ALIAS for ServiceProvider (to maintain backwards compatibility)
+ * All services are now included in the base ServiceProvider
  */
-interface EnhancedServiceContextType extends ServiceContextType {
-  restaurantService: IRestaurantService;
-  retailService: IRetailService;
-  serviceBusinessService: IServiceBusinessService;
-}
+export const EnhancedServiceProvider = ServiceProvider;
 
 /**
- * Enhanced ServiceProvider props with type-specific service overrides
+ * useEnhancedServices is now an ALIAS for useServices (to maintain backwards compatibility)
  */
-interface EnhancedServiceProviderProps extends ServiceProviderProps {
-  restaurantServiceOverride?: IRestaurantService;
-  retailServiceOverride?: IRetailService;
-  serviceBusinessServiceOverride?: IServiceBusinessService;
-}
-
-
-const EnhancedServiceContext = createContext<EnhancedServiceContextType | null>(null);
-/**
- * Create a new enhanced ServiceProvider component
- */
-export const EnhancedServiceProvider: React.FC<EnhancedServiceProviderProps> = ({
-  children,
-  businessServiceOverride,
-  appointmentServiceOverride,
-  fileServiceOverride,
-  businessNumbersServiceOverride,
-  restaurantServiceOverride,
-  retailServiceOverride,
-  serviceBusinessServiceOverride,
-  repositoryFactoryOverride,
-  supabaseClientOverride
-}) => {
-  // Get Supabase client from provider if not overridden
-  const supabaseContext = useSupabase();
-  const supabaseClient = supabaseClientOverride || supabaseContext.supabase;
-
-  // Initialize repository factory with supabase client if provided
-  const repositoryFactory = repositoryFactoryOverride || 
-    (supabaseClient ? RepositoryFactory.createWithClient(supabaseClient) : RepositoryFactory.getInstance());
-  
-  // Initialize or use provided service instances
-  const services = React.useMemo(() => {
-    return {
-      businessService: businessServiceOverride || new BusinessService(repositoryFactory),
-      appointmentService: appointmentServiceOverride || new AppointmentService(repositoryFactory),
-      fileService: fileServiceOverride || new FileService(repositoryFactory),
-      businessNumbersService: businessNumbersServiceOverride || new BusinessNumbersService(repositoryFactory),
-      restaurantService: restaurantServiceOverride || new RestaurantService(repositoryFactory),
-      retailService: retailServiceOverride || new RetailService(repositoryFactory),
-      serviceBusinessService: serviceBusinessServiceOverride || new ServiceBusinessService(repositoryFactory),
-      reloadServices: () => {
-        // Reset repository factory cache
-        repositoryFactory.reset();
-      }
-    };
-  }, [
-    repositoryFactory,
-    businessServiceOverride,
-    appointmentServiceOverride,
-    fileServiceOverride,
-    businessNumbersServiceOverride,
-    restaurantServiceOverride,
-    retailServiceOverride,
-    serviceBusinessServiceOverride
-  ]);
-  
-  return (
-    <EnhancedServiceContext.Provider value={services}>
-      {children}
-    </EnhancedServiceContext.Provider>
-  );
-};
-
-// Updated hooks to use the enhanced context
-export const useEnhancedServices = (): EnhancedServiceContextType => {
-  const context = useContext(EnhancedServiceContext);
-  if (!context) {
-    throw new Error('useEnhancedServices must be used within an EnhancedServiceProvider');
-  }
-  return context;
-};
+export const useEnhancedServices = useServices;
 
 /**
  * Hook to access the restaurant service
  */
 export const useRestaurantService = (): IRestaurantService => {
-  const services = useEnhancedServices();
+  const services = useServices();
   return services.restaurantService;
 };
 
@@ -249,7 +181,7 @@ export const useRestaurantService = (): IRestaurantService => {
  * Hook to access the retail service
  */
 export const useRetailService = (): IRetailService => {
-  const services = useEnhancedServices();
+  const services = useServices();
   return services.retailService;
 };
 
@@ -257,7 +189,7 @@ export const useRetailService = (): IRetailService => {
  * Hook to access the service business service
  */
 export const useServiceBusinessService = (): IServiceBusinessService => {
-  const services = useEnhancedServices();
+  const services = useServices();
   return services.serviceBusinessService;
 };
 
@@ -265,8 +197,8 @@ export const useServiceBusinessService = (): IServiceBusinessService => {
  * Hook to get the appropriate type-specific service based on business type
  */
 export const useTypeSpecificService = (businessType: string): ITypeSpecificBusinessService<any> => {
-  const { restaurantService, retailService, serviceBusinessService } = useEnhancedServices();
-  
+  const { restaurantService, retailService, serviceBusinessService } = useServices();
+
   switch (businessType) {
     case 'restaurant':
       return restaurantService;

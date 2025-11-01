@@ -2,31 +2,32 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/components/providers/supabase-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 import { Loader2 } from 'lucide-react'
 
 export default function AuthCheck({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
-  const initialCheckDone = useRef(false)
+  const [mounted, setMounted] = useState(false)
+  const redirectedRef = useRef(false)
 
+  // Mark as mounted on client side
   useEffect(() => {
-    // Wait a bit to ensure auth state is properly initialized
-    const timer = setTimeout(() => {
-      if (!initialCheckDone.current) {
-        if (user === null) {
-          router.push('/auth/login')
-        }
-        setIsLoading(false)
-        initialCheckDone.current = true
-      }
-    }, 1000)
+    setMounted(true)
+  }, [])
 
-    return () => clearTimeout(timer)
-  }, [user, router])
+  // Redirect to login if not authenticated after loading is complete
+  useEffect(() => {
+    if (mounted && !authLoading && !user && !redirectedRef.current) {
+      console.log('[AuthCheck] No user found, redirecting to login')
+      redirectedRef.current = true
+      // Use replace instead of push to avoid adding to history
+      router.replace('/auth/login')
+    }
+  }, [mounted, authLoading, user, router])
 
-  if (isLoading) {
+  // Show loading state while checking auth
+  if (!mounted || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
@@ -37,9 +38,18 @@ export default function AuthCheck({ children }: { children: React.ReactNode }) {
     )
   }
 
+  // Don't render anything while redirecting
   if (!user) {
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+          <p className="text-sm text-gray-500">Redirecting...</p>
+        </div>
+      </div>
+    )
   }
 
+  // Render children if authenticated
   return <>{children}</>
 }

@@ -10,9 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Loader2, LogIn, Mail, Lock, ArrowLeft } from 'lucide-react'
-import { useAuth } from '@/components/providers/supabase-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 import { useSupabase } from '@/components/providers/supabase-provider'
-import { AiraLogoLight } from '@/components/ui/dashboard-aira-logo'
+import { AuthVideoLogo } from '@/components/ui/video-logo'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -23,16 +23,12 @@ export default function LoginPage() {
   const [emailLoading, setEmailLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  const { user, signIn } = useAuth()
+  const { user, signIn, signInWithGoogle } = useAuth()
   const { supabase } = useSupabase()
   const router = useRouter()
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (user) {
-      router.push('/dashboard')
-    }
-  }, [user, router])
+  // Note: We don't auto-redirect if user exists here because it can cause
+  // redirect loops with stale sessions. Let the user explicitly log in.
 
   // Email/Password login handler
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -42,16 +38,11 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      const { error } = await signIn(email, password)
 
       if (error) throw error
 
-      if (data.user) {
-        router.push('/dashboard')
-      }
+      router.push('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Failed to sign in. Please check your credentials.')
     }
@@ -66,7 +57,7 @@ export default function LoginPage() {
     setError('')
 
     try {
-      await signIn()
+      await signInWithGoogle()
     } catch (err) {
       setError('Google sign-in failed. Please try again.')
       setGoogleLoading(false)
@@ -87,7 +78,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <AiraLogoLight />
+            <AuthVideoLogo />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             Welcome Back

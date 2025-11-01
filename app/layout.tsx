@@ -3,8 +3,37 @@ import './globals.css'
 import { Inter } from 'next/font/google'
 import { cn } from "@/lib/utils"  // Make sure you have this utility
 import { SupabaseProvider } from '@/components/providers/supabase-provider'
+import { AuthProvider } from '@/components/providers/auth-provider'
+import { Chatbot } from '@/components/ui/chatbot'
+import type { Metadata } from 'next'
 
 const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: 'AiRA - AI Reception Assistant',
+  description: 'Intelligent AI-powered reception assistant for businesses',
+  icons: {
+    icon: [
+      {
+        url: '/favicon.png',
+        sizes: 'any',
+        type: 'image/png',
+      },
+      {
+        url: '/icon.png',
+        sizes: '32x32',
+        type: 'image/png',
+      },
+    ],
+    apple: [
+      {
+        url: '/apple-touch-icon.png',
+        sizes: '180x180',
+        type: 'image/png',
+      },
+    ],
+  },
+}
 
 export default function RootLayout({
   children,
@@ -35,7 +64,10 @@ export default function RootLayout({
         )}
       >
         <SupabaseProvider>
-        {children}
+          <AuthProvider>
+            {children}
+            <Chatbot />
+          </AuthProvider>
         </SupabaseProvider>
       </body>
     </html>

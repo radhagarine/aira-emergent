@@ -5,9 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { AdvancedSettings } from '@/lib/services/settings/settings.service';
 import { useSettingsStore } from '../store/SettingsStore';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Link, CheckCircle, AlertCircle, Settings } from 'lucide-react';
 
 interface AdvancedSettingsFormProps {
   settings: AdvancedSettings;
@@ -43,13 +45,14 @@ const AdvancedSettingsForm: React.FC<AdvancedSettingsFormProps> = ({
 
   const handleGenerateApiKey = async () => {
     setIsGenerating(true);
-    
+
     try {
       await generateApiKey(userId);
     } finally {
       setIsGenerating(false);
     }
   };
+
 
   return (
     <Card>
@@ -113,6 +116,7 @@ const AdvancedSettingsForm: React.FC<AdvancedSettingsFormProps> = ({
             )}
           </div>
         </div>
+
       </CardContent>
     </Card>
   );

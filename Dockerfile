@@ -34,7 +34,7 @@ RUN npm install -D \
 EXPOSE 3000
 
 # Set the environment variable for production
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 # Create a volume for test results (optional)
 VOLUME ["/app/coverage"]

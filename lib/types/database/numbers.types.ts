@@ -2,7 +2,8 @@
 
 export interface BusinessNumberRow {
   id: string;
-  business_id: string;
+  user_id: string;
+  business_id: string | null; // Nullable - number can be unassigned
   phone_number: string;
   display_name: string;
   country_code: string;
@@ -14,13 +15,21 @@ export interface BusinessNumberRow {
   monthly_cost: number | null;
   features: string[] | null;
   notes: string | null;
+  // Twilio-specific fields
+  twilio_sid: string | null;
+  twilio_account_sid: string | null;
+  voice_url: string | null;
+  sms_url: string | null;
+  status_callback_url: string | null;
+  capabilities: Record<string, boolean> | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface BusinessNumberInsert {
   id?: string;
-  business_id: string;
+  user_id: string;
+  business_id?: string | null; // Optional - can be null for unassigned numbers
   phone_number: string;
   display_name: string;
   country_code: string;
@@ -32,13 +41,21 @@ export interface BusinessNumberInsert {
   monthly_cost?: number | null;
   features?: string[] | null;
   notes?: string | null;
+  // Twilio-specific fields
+  twilio_sid?: string | null;
+  twilio_account_sid?: string | null;
+  voice_url?: string | null;
+  sms_url?: string | null;
+  status_callback_url?: string | null;
+  capabilities?: Record<string, boolean> | null;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface BusinessNumberUpdate {
   id?: string;
-  business_id?: string;
+  user_id?: string;
+  business_id?: string | null;
   phone_number?: string;
   display_name?: string;
   country_code?: string;
@@ -50,6 +67,13 @@ export interface BusinessNumberUpdate {
   monthly_cost?: number | null;
   features?: string[] | null;
   notes?: string | null;
+  // Twilio-specific fields
+  twilio_sid?: string | null;
+  twilio_account_sid?: string | null;
+  voice_url?: string | null;
+  sms_url?: string | null;
+  status_callback_url?: string | null;
+  capabilities?: Record<string, boolean> | null;
   created_at?: string;
   updated_at?: string;
 }

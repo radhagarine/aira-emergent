@@ -13,7 +13,7 @@ import {
 import { DatabaseError } from '@/lib/types/shared/error.types';
 
 export class BusinessNumbersRepository implements IBusinessNumbersRepository {
-  private readonly tableName = 'business_numbers_v2';
+  private readonly tableName = 'business_numbers';
 
   constructor(
     private readonly supabase: SupabaseClient,
@@ -72,6 +72,29 @@ export class BusinessNumbersRepository implements IBusinessNumbersRepository {
     } catch (error) {
       if (error instanceof DatabaseError) throw error;
       throw new DatabaseError('Failed to get business number', 'UNKNOWN', error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+
+  async getByPhoneNumber(phoneNumber: string): Promise<BusinessNumberRow | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from(this.tableName)
+        .select('*')
+        .eq('phone_number', phoneNumber)
+        .maybeSingle();
+
+      if (error) {
+        throw new DatabaseError(
+          `Failed to get business number by phone ${phoneNumber}`,
+          error.code,
+          error.message
+        );
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof DatabaseError) throw error;
+      throw new DatabaseError('Failed to get business number by phone', 'UNKNOWN', error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
@@ -195,10 +218,9 @@ export class BusinessNumbersRepository implements IBusinessNumbersRepository {
         .select('*')
         .eq('business_id', businessId)
         .eq('is_primary', true)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        if (error.code === 'PGRST116') return null; // No rows returned
         throw new DatabaseError(
           `Failed to get primary number for business ${businessId}`,
           error.code,
@@ -377,23 +399,30 @@ export class BusinessNumbersRepository implements IBusinessNumbersRepository {
 
   async isPhoneNumberInUse(phoneNumber: string, excludeId?: string): Promise<boolean> {
     try {
-      let query = this.supabase
-        .from(this.tableName)
-        .select('id')
-        .eq('phone_number', phoneNumber);
+      // Use database function to bypass RLS for duplicate checking
+      // This is safe because it only returns a boolean, not actual data
+      const { data, error } = await this.supabase
+        .rpc('phone_number_exists', { p_phone_number: phoneNumber });
 
-      if (excludeId) {
-        query = query.neq('id', excludeId);
-      }
-
-      const { data, error } = await query.single();
-
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw new DatabaseError(
           `Failed to check if phone number ${phoneNumber} is in use`,
           error.code,
           error.message
         );
+      }
+
+      // If excludeId is provided and number exists, check if it's the excluded one
+      if (data && excludeId) {
+        const { data: existingNumber } = await this.supabase
+          .from(this.tableName)
+          .select('id')
+          .eq('phone_number', phoneNumber)
+          .eq('id', excludeId)
+          .maybeSingle();
+
+        // If the existing number is the one we're excluding, it's not "in use" by others
+        return !existingNumber;
       }
 
       return !!data;
@@ -404,6 +433,54 @@ export class BusinessNumbersRepository implements IBusinessNumbersRepository {
   }
 
   async getAllByUserId(userId: string): Promise<BusinessNumberWithBusiness[]> {
-    return this.getNumbersWithBusiness(userId);
+    try {
+      // Strategy: Get numbers owned by user directly (user_id column)
+      const { data: directNumbers, error: directError } = await this.supabase
+        .from(this.tableName)
+        .select(`
+          *,
+          business:business_v2(id, name, type, user_id)
+        `)
+        .eq('user_id', userId)
+        .order('is_primary', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (directError) {
+        console.error('[BusinessNumbersRepository] Error fetching direct numbers:', directError);
+        throw new DatabaseError(
+          `Failed to get direct numbers for user ${userId}`,
+          directError.code,
+          directError.message
+        );
+      }
+
+      // Also get numbers linked through businesses
+      const { data: businessNumbers, error: businessError } = await this.supabase
+        .from(this.tableName)
+        .select(`
+          *,
+          business:business_v2!inner(id, name, type, user_id)
+        `)
+        .eq('business.user_id', userId)
+        .order('is_primary', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (businessError) {
+        console.error('[BusinessNumbersRepository] Error fetching business numbers:', businessError);
+        // Don't throw here, just log - we can still return direct numbers
+      }
+
+      // Merge and deduplicate by id
+      const allNumbers = [...(directNumbers || []), ...(businessNumbers || [])];
+      const uniqueNumbers = Array.from(
+        new Map(allNumbers.map(num => [num.id, num])).values()
+      );
+
+      return uniqueNumbers;
+    } catch (error) {
+      console.error('[BusinessNumbersRepository] getAllByUserId error:', error);
+      if (error instanceof DatabaseError) throw error;
+      throw new DatabaseError('Failed to get all numbers by user ID', 'UNKNOWN', error instanceof Error ? error.message : 'Unknown error');
+    }
   }
 }

@@ -112,6 +112,7 @@ export type Database = {
           name: string
           phone: string | null
           profile_image: string | null
+          timezone: string | null
           type: Database["public"]["Enums"]["business_type"]
           updated_at: string
           user_id: string
@@ -124,6 +125,7 @@ export type Database = {
           name: string
           phone?: string | null
           profile_image?: string | File | null
+          timezone?: string | null
           type: Database["public"]["Enums"]["business_type"]
           updated_at?: string
           user_id: string
@@ -136,6 +138,7 @@ export type Database = {
           name?: string
           phone?: string | null
           profile_image?: string | File | null
+          timezone?: string | null
           type?: Database["public"]["Enums"]["business_type"]
           updated_at?: string
           user_id?: string

@@ -18,9 +18,12 @@ import {
 
 export class BusinessNumbersService extends BaseService implements IBusinessNumbersService {
   private numbersRepository: IBusinessNumbersRepository;
+  private static instanceCount = 0;
+  private instanceId: number;
 
   constructor(repositoryFactory: RepositoryFactory) {
     super(repositoryFactory);
+    this.instanceId = ++BusinessNumbersService.instanceCount;
     this.numbersRepository = this.repositoryFactory.getBusinessNumbersRepository();
   }
 
@@ -33,7 +36,8 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
       }
 
       // If this is set as primary, ensure no other number is primary for this business
-      if (data.is_primary) {
+      // Only check if business_id is provided (number is assigned to a business)
+      if (data.is_primary && data.business_id) {
         const existingPrimary = await this.numbersRepository.getPrimaryByBusinessId(data.business_id);
         if (existingPrimary) {
           await this.numbersRepository.update(existingPrimary.id, { is_primary: false });
@@ -46,7 +50,10 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
         updated_at: new Date().toISOString()
       });
 
-      this.clearCacheForBusiness(data.business_id);
+      // Only clear business cache if number is assigned to a business
+      if (data.business_id) {
+        this.clearCacheForBusiness(data.business_id);
+      }
       return result;
     } catch (error) {
       console.error('Error creating business number:', error);
@@ -71,6 +78,23 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
     }
   }
 
+  async getByPhoneNumber(phoneNumber: string): Promise<BusinessNumberRow | null> {
+    try {
+      const cacheKey = `business_number_phone_${phoneNumber}`;
+      const cached = this.getFromCache<BusinessNumberRow>(cacheKey);
+      if (cached) return cached;
+
+      const result = await this.numbersRepository.getByPhoneNumber(phoneNumber);
+      if (result) {
+        this.setCache(cacheKey, result, 300); // Cache for 5 minutes
+      }
+      return result;
+    } catch (error) {
+      console.error('Error getting business number by phone:', error);
+      throw error;
+    }
+  }
+
   async updateNumber(id: string, data: BusinessNumberUpdate): Promise<BusinessNumberRow> {
     try {
       // If updating phone number, validate it
@@ -87,7 +111,8 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
       }
 
       // If setting as primary, unset others for the same business
-      if (data.is_primary && !current.is_primary) {
+      // Only if the number is assigned to a business
+      if (data.is_primary && !current.is_primary && current.business_id) {
         await this.setPrimaryNumber(id, current.business_id);
         return await this.numbersRepository.getById(id) as BusinessNumberRow;
       }
@@ -97,7 +122,10 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
         updated_at: new Date().toISOString()
       });
 
-      this.clearCacheForBusiness(current.business_id);
+      // Only clear business cache if number is assigned to a business
+      if (current.business_id) {
+        this.clearCacheForBusiness(current.business_id);
+      }
       this.clearCache(`business_number_${id}`);
       return result;
     } catch (error) {
@@ -113,8 +141,9 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
         throw new Error('Business number not found');
       }
 
-      // Don't allow deletion of primary numbers if there are other numbers
-      if (current.is_primary) {
+      // Don't allow deletion of primary numbers if there are other numbers for the same business
+      // Only check if number is assigned to a business
+      if (current.is_primary && current.business_id) {
         const businessNumbers = await this.numbersRepository.getByBusinessId(current.business_id);
         if (businessNumbers.length > 1) {
           throw new Error('Cannot delete primary number. Please set another number as primary first.');
@@ -122,7 +151,10 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
       }
 
       await this.numbersRepository.delete(id);
-      this.clearCacheForBusiness(current.business_id);
+      // Only clear business cache if number is assigned to a business
+      if (current.business_id) {
+        this.clearCacheForBusiness(current.business_id);
+      }
       this.clearCache(`business_number_${id}`);
     } catch (error) {
       console.error('Error deleting business number:', error);
@@ -147,15 +179,12 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
 
   async getAllNumbersByUserId(userId: string): Promise<BusinessNumberWithBusiness[]> {
     try {
-      const cacheKey = `user_numbers_${userId}`;
-      const cached = this.getFromCache<BusinessNumberWithBusiness[]>(cacheKey);
-      if (cached) return cached;
-
+      // NO CACHING - just fetch directly from repository every time
       const result = await this.numbersRepository.getAllByUserId(userId);
-      this.setCache(cacheKey, result, 300); // 5-minute cache
+
       return result;
     } catch (error) {
-      console.error('Error getting all numbers by user ID:', error);
+      console.error('[BusinessNumbersService] Error getting all numbers by user ID:', error);
       throw error;
     }
   }
@@ -179,7 +208,20 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
 
   async setPrimaryNumber(id: string, businessId: string): Promise<BusinessNumberRow> {
     try {
+      // Get the number to update business_v2.phone
+      const number = await this.numbersRepository.getById(id);
+      if (!number) {
+        throw new Error('Phone number not found');
+      }
+
       const result = await this.numbersRepository.setPrimary(id, businessId);
+
+      // Update business_v2.phone field to the new primary number
+      const businessRepository = this.repositoryFactory.getBusinessRepository();
+      await businessRepository.updateBusiness(businessId, {
+        phone: number.phone_number
+      });
+
       this.clearCacheForBusiness(businessId);
       return result;
     } catch (error) {
@@ -195,13 +237,16 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
         throw new Error('Business number not found');
       }
 
-      // Don't allow deactivating primary numbers
-      if (current.is_primary && current.is_active) {
+      // Don't allow deactivating primary numbers (only if assigned to a business)
+      if (current.is_primary && current.is_active && current.business_id) {
         throw new Error('Cannot deactivate primary number. Please set another number as primary first.');
       }
 
       const result = await this.numbersRepository.toggleActive(id);
-      this.clearCacheForBusiness(current.business_id);
+      // Only clear business cache if number is assigned to a business
+      if (current.business_id) {
+        this.clearCacheForBusiness(current.business_id);
+      }
       this.clearCache(`business_number_${id}`);
       return result;
     } catch (error) {
@@ -235,6 +280,139 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
       return result;
     } catch (error) {
       console.error('Error searching numbers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get phone numbers available for linking to a business
+   * Returns numbers that are:
+   * - Owned by the user
+   * - Active
+   * - Not currently linked to any business (business_id is null)
+   */
+  async getAvailableNumbersForUser(userId: string): Promise<BusinessNumberRow[]> {
+    try {
+      const cacheKey = `available_numbers_${userId}`;
+      const cached = this.getFromCache<BusinessNumberRow[]>(cacheKey);
+      if (cached) return cached;
+
+      const allNumbers = await this.getAllNumbersByUserId(userId);
+      // Filter for active numbers not linked to any business
+      const availableNumbers = allNumbers
+        .filter(num => num.is_active && !num.business_id)
+        .map(num => {
+          // Extract just the number data (not the joined business data)
+          const { business, ...numberData } = num as any;
+          return numberData as BusinessNumberRow;
+        });
+
+      this.setCache(cacheKey, availableNumbers, 300); // Cache for 5 minutes
+      return availableNumbers;
+    } catch (error) {
+      console.error('Error getting available numbers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Link a phone number to a business
+   * Sets the business_id field and optionally makes it primary
+   */
+  async linkNumberToBusiness(
+    numberId: string,
+    businessId: string,
+    makePrimary: boolean = false
+  ): Promise<BusinessNumberRow> {
+    try {
+      // Get the number to verify it's not already linked
+      const number = await this.numbersRepository.getById(numberId);
+      if (!number) {
+        throw new Error('Phone number not found');
+      }
+
+      if (number.business_id && number.business_id !== businessId) {
+        throw new Error('Phone number is already linked to another business');
+      }
+
+      // If making this primary, unset other primary numbers for this business
+      if (makePrimary) {
+        const existingPrimary = await this.numbersRepository.getPrimaryByBusinessId(businessId);
+        if (existingPrimary && existingPrimary.id !== numberId) {
+          await this.numbersRepository.update(existingPrimary.id, { is_primary: false });
+        }
+      }
+
+      // Link the number to the business
+      const result = await this.numbersRepository.update(numberId, {
+        business_id: businessId,
+        is_primary: makePrimary,
+        updated_at: new Date().toISOString()
+      });
+
+      // If this is a primary number, update business_v2.phone field for consistency
+      if (makePrimary) {
+        const businessRepository = this.repositoryFactory.getBusinessRepository();
+        await businessRepository.updateBusiness(businessId, {
+          phone: number.phone_number
+        });
+      }
+
+      // Clear caches
+      this.clearCacheForBusiness(businessId);
+      this.clearCache(`business_number_${numberId}`);
+      this.clearCache(`available_numbers_${number.user_id}`);
+      this.clearCache(`primary_number_${businessId}`);
+
+      return result;
+    } catch (error) {
+      console.error('Error linking number to business:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unlink a phone number from a business
+   * Sets business_id to null and is_primary to false
+   */
+  async unlinkNumberFromBusiness(numberId: string): Promise<BusinessNumberRow> {
+    try {
+      const number = await this.numbersRepository.getById(numberId);
+      if (!number) {
+        throw new Error('Phone number not found');
+      }
+
+      if (!number.business_id) {
+        throw new Error('Phone number is not linked to any business');
+      }
+
+      const businessId = number.business_id;
+      const wasPrimary = number.is_primary;
+
+      // Unlink the number
+      const result = await this.numbersRepository.update(numberId, {
+        business_id: null,
+        is_primary: false,
+        updated_at: new Date().toISOString()
+      });
+
+      // If this was a primary number, clear business_v2.phone field
+      if (wasPrimary) {
+        const businessRepository = this.repositoryFactory.getBusinessRepository();
+        await businessRepository.updateBusiness(businessId, {
+          phone: null
+        });
+      }
+
+      // Clear caches
+      this.clearCacheForBusiness(businessId);
+      this.clearCache(`business_number_${numberId}`);
+      this.clearCache(`available_numbers_${number.user_id}`);
+      this.clearCache(`primary_number_${businessId}`);
+
+      return result;
+    } catch (error) {
+      console.error('Error unlinking number from business:', error);
       throw error;
     }
   }
@@ -293,7 +471,10 @@ export class BusinessNumbersService extends BaseService implements IBusinessNumb
           updated_at: new Date().toISOString()
         });
         results.push(result);
-        businessIds.add(result.business_id);
+        // Only add to set if business_id is not null
+        if (result.business_id) {
+          businessIds.add(result.business_id);
+        }
       }
 
       // Clear cache for all affected businesses

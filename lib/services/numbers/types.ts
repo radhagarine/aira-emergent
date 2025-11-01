@@ -65,6 +65,27 @@ export interface IBusinessNumbersService {
   searchNumbers(userId: string, query: string): Promise<BusinessNumberWithBusiness[]>;
 
   /**
+   * Get phone numbers available for linking to a business
+   * Returns active numbers not currently linked to any business
+   */
+  getAvailableNumbersForUser(userId: string): Promise<BusinessNumberRow[]>;
+
+  /**
+   * Get phone number by phone number string
+   */
+  getByPhoneNumber(phoneNumber: string): Promise<BusinessNumberRow | null>;
+
+  /**
+   * Link a phone number to a business
+   */
+  linkNumberToBusiness(numberId: string, businessId: string, makePrimary?: boolean): Promise<BusinessNumberRow>;
+
+  /**
+   * Unlink a phone number from a business
+   */
+  unlinkNumberFromBusiness(numberId: string): Promise<BusinessNumberRow>;
+
+  /**
    * Validate phone number format and availability
    */
   validatePhoneNumber(phoneNumber: string, excludeId?: string): Promise<ValidationResult>;

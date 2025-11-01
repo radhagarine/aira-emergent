@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useBusinessService } from '@/components/providers/service-provider';
@@ -11,7 +11,7 @@ import { BusinessResponse } from '@/lib/services/business/types';
 import { ServiceError } from '@/lib/types/shared/error.types';
 import { toast } from 'sonner';
 
-export default function CalendarPage() {
+function CalendarPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
@@ -108,4 +108,16 @@ export default function CalendarPage() {
   }
 
   return <BusinessCalendarManager businessId={selectedBusiness.id} />;
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+      </div>
+    }>
+      <CalendarPageContent />
+    </Suspense>
+  );
 }

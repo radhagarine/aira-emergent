@@ -143,7 +143,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 # Application Settings
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=https://aira.aivn.ai
 ```
 
 ## Development Workflow
@@ -215,10 +215,10 @@ docker-compose run app npm run test:coverage
 
 ```bash
 # Build production image with no cache
-docker build --no-cache -t aira-platformauth .
+docker build --no-cache -t aira-ai .
 
 # Run production container
-docker run -p 3000:3000 aira-platformauth
+docker run -p 3000:3000 aira-ai
 
 # Alternative approach with named image
 docker build -t business-management-system:latest .

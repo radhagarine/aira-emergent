@@ -1,5 +1,5 @@
 // src/lib/services/appointment/appointment.service.ts
-import { 
+import {
   IAppointmentService,
   AppointmentCreateData,
   AppointmentUpdateData,
@@ -7,8 +7,15 @@ import {
   DateRange,
   BusinessCapacity,
   CalendarData,
-  UtilizationSummary
+  UtilizationSummary,
+  VoiceAppointmentCreateData
 } from './types';
+
+import {
+  parseNaturalTimeToUTC,
+  formatLocalDateTime,
+  getUserTimezone
+} from '@/lib/utils/timezone';
 
 import { 
   getRepositoryFactory,
@@ -728,7 +735,7 @@ async updateAppointment(
 
       // Only consider confirmed, completed, and pending appointments
       const validStatuses: AppointmentStatus[] = ['confirmed', 'completed', 'pending'];
-      const validAppointments = appointments.filter(apt => 
+      const validAppointments = appointments.filter(apt =>
         validStatuses.includes(apt.status as AppointmentStatus)
       );
 
@@ -754,7 +761,7 @@ async updateAppointment(
       while (currentDate <= dateRange.end) {
         const dateStr = currentDate.toISOString().split('T')[0];
         dailyUtilization[dateStr] = 0;
-        
+
         // Move to next day
         currentDate.setDate(currentDate.getDate() + 1);
       }
@@ -765,11 +772,11 @@ async updateAppointment(
         const dateStr = aptDate.toISOString().split('T')[0];
         const hour = aptDate.getHours();
         const hourStr = `${hour}`.padStart(2, '0');
-        
+
         // Add to daily utilization
         const partySize = appointment.party_size || 1;
         dailyUtilization[dateStr] = (dailyUtilization[dateStr] || 0) + partySize;
-        
+
         // Track hour frequency
         hourCounts[hourStr] = (hourCounts[hourStr] || 0) + partySize;
       });
@@ -784,11 +791,11 @@ async updateAppointment(
       // Get peak and slow hours
       const hourEntries = Object.entries(hourCounts);
       hourEntries.sort((a, b) => b[1] - a[1]); // Sort by count descending
-      
+
       const peakHours = hourEntries
         .slice(0, 3)
         .map(([hour]) => `${hour}:00`);
-        
+
       const slowHours = hourEntries
         .slice(-3)
         .map(([hour]) => `${hour}:00`);
@@ -818,6 +825,109 @@ async updateAppointment(
         'FETCH_ERROR',
         error
       );
+    }
+  }
+
+  /**
+   * Create an appointment from voice bot with natural language time parsing
+   * This method handles timezone-aware appointment creation from voice commands
+   *
+   * If user_timezone is not provided, it will automatically fetch the business timezone
+   *
+   * @param data - Voice appointment creation data
+   * @returns Success status and message
+   *
+   * @example
+   * // With explicit timezone
+   * const result = await appointmentService.createAppointmentFromVoice({
+   *   business_id: 'business-123',
+   *   user_id: 'user-456',
+   *   natural_language_time: 'tomorrow 10 AM',
+   *   user_timezone: 'Asia/Kolkata',
+   *   party_size: 2,
+   *   duration_minutes: 60
+   * });
+   *
+   * // Without timezone (uses business timezone)
+   * const result = await appointmentService.createAppointmentFromVoice({
+   *   business_id: 'business-123',
+   *   user_id: 'user-456',
+   *   natural_language_time: 'tomorrow 10 AM',
+   *   party_size: 2,
+   *   duration_minutes: 60
+   * });
+   */
+  async createAppointmentFromVoice(
+    data: VoiceAppointmentCreateData
+  ): Promise<{ success: boolean; message: string; appointment?: AppointmentResponse }> {
+    try {
+      // Validate required fields
+      if (!data.business_id || !data.user_id || !data.natural_language_time) {
+        return {
+          success: false,
+          message: 'Missing required fields: business_id, user_id, and natural_language_time are required'
+        };
+      }
+
+      // Determine timezone to use
+      let timezone = data.user_timezone;
+
+      // If no timezone provided, fetch from business settings
+      if (!timezone) {
+        try {
+          const business = await this.businessRepository.getBusinessWithDetails(data.business_id);
+          timezone = business?.timezone || getUserTimezone(); // Fallback to browser timezone
+        } catch (error) {
+          console.warn('Failed to fetch business timezone, using browser timezone', error);
+          timezone = getUserTimezone();
+        }
+      }
+
+      // Parse natural language time to UTC
+      const startTimeUTC = parseNaturalTimeToUTC(data.natural_language_time, timezone);
+
+      // Calculate end time based on duration
+      const durationMinutes = data.duration_minutes || 60;
+      const startDate = new Date(startTimeUTC);
+      const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+      const endTimeUTC = endDate.toISOString();
+
+      // Create appointment with UTC times
+      const appointmentData: AppointmentCreateData = {
+        business_id: data.business_id,
+        user_id: data.user_id,
+        start_time: startTimeUTC,
+        end_time: endTimeUTC,
+        description: data.description || null,
+        party_size: data.party_size || 1,
+        status: data.status || 'pending',
+        user_timezone: data.user_timezone
+      };
+
+      const appointment = await this.createAppointment(appointmentData);
+
+      // Format confirmation message in user's local timezone
+      const localDateTime = formatLocalDateTime(startTimeUTC, timezone, 'long');
+
+      return {
+        success: true,
+        message: `Appointment booked successfully on ${localDateTime}`,
+        appointment
+      };
+    } catch (error) {
+      console.error('Error creating appointment from voice:', error);
+
+      if (error instanceof ServiceError) {
+        return {
+          success: false,
+          message: error.message
+        };
+      }
+
+      return {
+        success: false,
+        message: 'Failed to create appointment. Please try again.'
+      };
     }
   }
 

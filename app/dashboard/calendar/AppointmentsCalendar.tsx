@@ -19,7 +19,8 @@ import {
   Loader2,
   Grid,
   List,
-  Columns
+  Columns,
+  Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppointmentResponse, DateRange } from '@/lib/services/appointment/types';
@@ -30,13 +31,14 @@ import { DayView } from './DayView';
 import { WeekView } from './WeekView';
 import { MonthView } from './MonthView';
 import { Appointment, AppointmentStatus, CalendarView, StatusConfig } from '@/app/dashboard/calendar/type';
+import { getUserTimezone, getTimezoneAbbreviation, formatTimeOnly } from '@/lib/utils/timezone';
 
 interface AppointmentsCalendarProps {
   businessId: string;
   totalCapacity?: number;
 }
 
-const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({ 
+const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({
   businessId,
   totalCapacity = 50
  }) => {
@@ -44,9 +46,21 @@ const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [view, setView] = useState<CalendarView>('month');
   const [loading, setLoading] = useState(true);
-  
+
+  // Get user's timezone for display
+  const [userTimezone, setUserTimezone] = useState<string>('UTC');
+  const [timezoneAbbr, setTimezoneAbbr] = useState<string>('');
+
   // Get the appointment service from the service layer
   const appointmentService = useAppointmentService();
+
+  // Initialize timezone on mount
+  useEffect(() => {
+    const timezone = getUserTimezone();
+    const abbr = getTimezoneAbbreviation(timezone);
+    setUserTimezone(timezone);
+    setTimezoneAbbr(abbr);
+  }, []);
 
   const getDateRange = (): DateRange => {
     const start = new Date(currentDate);
@@ -161,11 +175,8 @@ const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({
   };
 
   const formatTime = (dateString: string): string => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+    // Format time in user's timezone
+    return formatTimeOnly(dateString, userTimezone, false);
   };
 
   const navigate = (direction: 'prev' | 'next'): void => {
@@ -256,14 +267,22 @@ const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({
             >
               <ChevronLeft className="h-6 w-6" />
             </Button>
-            
+
             <div className="flex items-center gap-3">
               <CalendarIcon className="h-6 w-6 text-white/80" />
-              <span className="text-lg font-semibold tracking-wide">
-                {formatDateRange()}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-lg font-semibold tracking-wide">
+                  {formatDateRange()}
+                </span>
+                {timezoneAbbr && (
+                  <span className="text-xs text-white/70 flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {userTimezone} ({timezoneAbbr})
+                  </span>
+                )}
+              </div>
             </div>
-            
+
             <Button
               variant="ghost"
               size="sm"
@@ -275,8 +294,8 @@ const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({
           </div>
 
           <div className="flex items-center gap-4">
-            <Select 
-              value={view} 
+            <Select
+              value={view}
               onValueChange={(value: CalendarView) => setView(value)}
             >
               <SelectTrigger className="bg-white/20 border-none text-white hover:bg-white/30 w-40">

@@ -1,51 +1,52 @@
 // middleware.ts
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          res.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          res.cookies.set({ name, value: '', ...options });
+        },
+      },
+    }
+  )
 
   try {
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession()
+    // Refresh session if expired
+    await supabase.auth.getSession()
 
-    /*
-    console.log('Current path:', req.nextUrl.pathname)
-    console.log('Session exists:', !!session)
-    console.log('Session error:', error)
-    */
-
-     // Check if cookies exist
-    const allCookies = req.cookies.getAll()
-    //console.log('Cookies present:', allCookies.map(c => c.name))
-
-    if (error) {
-      //console.error('Middleware session error:', error)
-      return NextResponse.redirect(new URL('/', req.url))
-    }
-  
-    // If trying to access a protected route but no session exists
-    if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-      //console.log('No session, redirecting from dashboard to home')
-      return NextResponse.redirect(new URL('/', req.url))
-    }
-
-    // If signed in and trying to access auth pages
-    /* if (session && req.nextUrl.pathname === '/') {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    } */
+    // If trying to access a protected route, check auth on client side
+    // Middleware will just refresh the session, not redirect
+    // This prevents redirect loops and allows client-side auth checks to work properly
 
     return res
   } catch (error) {
-    //console.error('Middleware error:', error)
-    return NextResponse.redirect(new URL('/', req.url))
+    console.error('[Middleware] Error:', error)
+    return res
   }
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*']
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (public folder)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ]
 }

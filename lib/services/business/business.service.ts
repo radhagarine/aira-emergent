@@ -422,6 +422,16 @@ export class BusinessService implements IBusinessService {
       );
     }
   }
+
+  /**
+   * Clear cache for a user's business profiles
+   * Useful when external changes affect business data (e.g., phone number linking)
+   */
+  clearUserCache(userId: string): void {
+    console.log('[BusinessService] Clearing cache for user:', userId);
+    this.cacheManager.clearByPrefix(`business:profiles:${userId}`);
+    console.log('[BusinessService] Cache cleared');
+  }
 }
 
 // Export a singleton instance

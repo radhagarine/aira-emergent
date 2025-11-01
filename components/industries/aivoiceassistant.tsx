@@ -6,10 +6,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { motion, AnimatePresence } from 'framer-motion'
 
 const businesses = [
-  { 
-    icon: Utensils, 
-    name: 'Restaurants', 
-    position: { top: '15%', left: '50%', transform: 'translateX(-50%)' },
+  {
+    icon: Utensils,
+    name: 'Restaurants',
+    position: { top: '8%', left: '50%', transform: 'translateX(-50%)' },
     chatPosition: { top: '50%', right: '110%', transform: 'translateY(-50%)' },
     messages: [
       { role: 'ai', content: "Welcome to Tasty Dining! How can I assist you today?" },
@@ -19,50 +19,50 @@ const businesses = [
       { role: 'ai', content: "For how many people?" },
     ]
   },
-  { 
-    icon: Scissors, 
-    name: 'Salons', 
-    position: { top: '50%', right: '15%', transform: 'translateY(-50%)' },
+  {
+    icon: Scissors,
+    name: 'Salons',
+    position: { top: '50%', right: '8%', transform: 'translateY(-50%)' },
     chatPosition: { top: '110%', left: '50%', transform: 'translateX(-50%)' },
     messages: [
       { role: 'ai', content: "Looking fabulous is just a booking away. What service are you interested in?" },
       { role: 'user', content: "I'd like to book a hair styling appointment." }
     ]
   },
-  { 
-    icon: Plane, 
-    name: 'Travel', 
-    position: { bottom: '15%', left: '50%', transform: 'translateX(-50%)' },
+  {
+    icon: Plane,
+    name: 'Travel',
+    position: { bottom: '8%', left: '50%', transform: 'translateX(-50%)' },
     chatPosition: { top: '50%', left: '110%', transform: 'translateY(-50%)' },
     messages: [
       { role: 'ai', content: "Ready for your next adventure! Let's plan your perfect getaway!" },
       { role: 'user', content: "I'm looking for a beach vacation package." }
     ]
   },
-  { 
-    icon: Stethoscope, 
-    name: 'Healthcare', 
-    position: { top: '50%', left: '15%', transform: 'translateY(-50%)' },
+  {
+    icon: Stethoscope,
+    name: 'Healthcare',
+    position: { top: '50%', left: '8%', transform: 'translateY(-50%)' },
     chatPosition: { bottom: '110%', right: '50%', transform: 'translateX(50%)' },
     messages: [
       { role: 'ai', content: "Your health is our priority. How can I assist you with your medical needs?" },
       { role: 'user', content: "I need to schedule a check-up appointment." }
     ]
   },
-  { 
-    icon: Home, 
-    name: 'Real Estate', 
-    position: { top: '25%', right: '25%' },
-    chatPosition: { top: '50%', left: '110%', transform: 'translateY(-50%)' },
+  {
+    icon: Home,
+    name: 'Real Estate',
+    position: { top: '20%', right: '25%' },
+    chatPosition: { top: '50%', right: '110%', transform: 'translateY(-50%)' },
     messages: [
       { role: 'ai', content: "Looking for your dream home? Let's start your property search today!" },
       { role: 'user', content: "I'm interested in viewing 3-bedroom houses." }
     ]
   },
-  { 
-    icon: Car, 
-    name: 'Automotive', 
-    position: { bottom: '25%', left: '25%' },
+  {
+    icon: Car,
+    name: 'Automotive',
+    position: { bottom: '20%', left: '20%' },
     chatPosition: { top: '110%', right: '110%', transform: 'translateX(50%)' },
     messages: [
       { role: 'ai', content: "Car troubles or looking for a new ride? I'm here to help with all things automotive!" },
@@ -175,18 +175,18 @@ export default function AIVoiceAssistant() {
               </div>
             )}
             <button
-              className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-lg transition-all duration-200 group hover:bg-gradient-to-b hover:from-[#8B0000] hover:to-[#5C0000] hover:shadow-[#8B0000]/50 hover:shadow-xl border-2 border-[#8B0000]"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-4 sm:py-2 bg-white rounded-full shadow-lg transition-all duration-200 group hover:bg-gradient-to-b hover:from-[#8B0000] hover:to-[#5C0000] hover:shadow-[#8B0000]/50 hover:shadow-xl border-2 border-[#8B0000]"
               style={{
-                minWidth: '180px',
+                minWidth: '140px',
               }}
               onMouseEnter={() => setHoveredBusiness(name)}
               onMouseLeave={() => setHoveredBusiness(null)}
             >
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#FFE5E5] group-hover:bg-[#8B0000] transition-colors duration-200">
-                <Icon className="w-5 h-5 text-[#FF4D4D] group-hover:text-white" />
+              <div className="flex items-center justify-center w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#FFE5E5] group-hover:bg-[#8B0000] transition-colors duration-200">
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF4D4D] group-hover:text-white" />
               </div>
-              <span className="flex-1 text-center font-medium text-gray-700 group-hover:text-white">{name}</span>
-              <div className="w-10" />
+              <span className="flex-1 text-center font-medium text-gray-700 group-hover:text-white text-xs sm:text-base">{name}</span>
+              <div className="w-7 sm:w-10" />
             </button>
           </div>
         </div>

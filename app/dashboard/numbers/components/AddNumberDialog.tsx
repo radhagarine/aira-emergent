@@ -1,291 +1,156 @@
 'use client'
 
-import { useState } from 'react'
-import { X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
-import { useBusinessNumbersService, useBusinessService } from '@/components/providers/service-provider'
+import { useAuth } from '@/components/providers/auth-provider'
 import { BusinessNumberType } from '@/lib/types/database/numbers.types'
-import { BusinessResponse } from '@/lib/services/business/types'
+import { toast } from 'sonner'
 
 interface AddNumberDialogProps {
   open: boolean
   onClose: () => void
   onSuccess: () => void
+  initialPhoneNumber?: string
 }
 
-export function AddNumberDialog({ open, onClose, onSuccess }: AddNumberDialogProps) {
-  const businessNumbersService = useBusinessNumbersService()
-  const businessService = useBusinessService()
-  
-  const [formData, setFormData] = useState({
-    phoneNumber: '',
-    displayName: '',
-    countryCode: 'US',
-    businessId: '',
-    numberType: BusinessNumberType.LOCAL,
-    provider: '',
-    monthlyCoast: '',
-    isPrimary: false,
-    isActive: true,
-    features: [] as string[],
-    notes: ''
-  })
-  
-  const [businesses, setBusinesses] = useState<BusinessResponse[]>([])
-  const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
+export function AddNumberDialog({ open, onClose, onSuccess, initialPhoneNumber }: AddNumberDialogProps) {
+  const { user } = useAuth()
 
-  // Mock user ID - in real app, get from auth context
-  const userId = 'user123'
+  // Purchase state
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [purchasing, setPurchasing] = useState(false)
+  const [purchaseError, setPurchaseError] = useState('')
+  const [displayName, setDisplayName] = useState('')
 
-  const loadBusinesses = async () => {
-    try {
-      const businessData = await businessService.getBusinessProfile(userId)
-      setBusinesses(businessData)
-    } catch (error) {
-      console.error('Error loading businesses:', error)
-    }
-  }
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
-      loadBusinesses()
+      // Set phone number if provided
+      if (initialPhoneNumber) {
+        setPhoneNumber(initialPhoneNumber)
+      }
+      // Reset state
+      setPurchaseError('')
     }
-  }, [open])
+  }, [open, initialPhoneNumber])
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.phoneNumber) {
-      newErrors.phoneNumber = 'Phone number is required'
-    }
-
-    if (!formData.displayName) {
-      newErrors.displayName = 'Display name is required'
-    }
-
-    if (!formData.businessId) {
-      newErrors.businessId = 'Business is required'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) {
+  const handlePurchase = async () => {
+    if (!phoneNumber) {
+      setPurchaseError('Please select a phone number')
       return
     }
 
-    setLoading(true)
+    if (!displayName) {
+      setPurchaseError('Please enter a display name')
+      return
+    }
+
+    setPurchasing(true)
+    setPurchaseError('')
+
     try {
-      await businessNumbersService.createNumber({
-        phone_number: formData.phoneNumber,
-        display_name: formData.displayName,
-        country_code: formData.countryCode,
-        business_id: formData.businessId,
-        number_type: formData.numberType,
-        provider: formData.provider || null,
-        monthly_cost: formData.monthlyCoast ? parseFloat(formData.monthlyCoast) : null,
-        is_primary: formData.isPrimary,
-        is_active: formData.isActive,
-        features: formData.features.length > 0 ? formData.features : null,
-        notes: formData.notes || null
+      const response = await fetch('/api/numbers/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Ensure cookies are sent
+        body: JSON.stringify({
+          phoneNumber: phoneNumber,
+          displayName,
+          countryCode: 'US',
+          numberType: BusinessNumberType.LOCAL,
+          // userId is now extracted from session on server-side
+        }),
       })
-      
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (data.code === 'INSUFFICIENT_BALANCE') {
+          throw new Error(`Insufficient balance. You need $${data.requiredAmount?.toFixed(2) || '0.00'} to purchase this number.`)
+        }
+        throw new Error(data.error || 'Failed to purchase number')
+      }
+
+      // Success!
+      toast.success('Phone number purchased successfully!')
       onSuccess()
       onClose()
-      
+
       // Reset form
-      setFormData({
-        phoneNumber: '',
-        displayName: '',
-        countryCode: 'US',
-        businessId: '',
-        numberType: BusinessNumberType.LOCAL,
-        provider: '',
-        monthlyCoast: '',
-        isPrimary: false,
-        isActive: true,
-        features: [],
-        notes: ''
-      })
-    } catch (error) {
-      console.error('Error creating number:', error)
-      setErrors({ general: 'Failed to create number. Please try again.' })
+      setPhoneNumber('')
+      setDisplayName('')
+    } catch (error: any) {
+      console.error('Error purchasing number:', error)
+      setPurchaseError(error.message || 'Failed to purchase number')
     } finally {
-      setLoading(false)
+      setPurchasing(false)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Add New Business Number</DialogTitle>
+          <DialogTitle>Purchase phone number</DialogTitle>
+          <DialogDescription>
+            Complete the purchase of your selected phone number
+          </DialogDescription>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {errors.general && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-              {errors.general}
-            </div>
-          )}
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="phoneNumber">Phone Number *</Label>
-              <Input
-                id="phoneNumber"
-                type="tel"
-                placeholder="+1 (555) 123-4567"
-                value={formData.phoneNumber}
-                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                className={errors.phoneNumber ? 'border-red-500' : ''}
-              />
-              {errors.phoneNumber && (
-                <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>
-              )}
-            </div>
-            
-            <div>
-              <Label htmlFor="displayName">Display Name *</Label>
-              <Input
-                id="displayName"
-                placeholder="Main Business Line"
-                value={formData.displayName}
-                onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                className={errors.displayName ? 'border-red-500' : ''}
-              />
-              {errors.displayName && (
-                <p className="text-red-500 text-sm mt-1">{errors.displayName}</p>
-              )}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="business">Business *</Label>
-              <Select
-                value={formData.businessId}
-                onValueChange={(value) => setFormData({ ...formData, businessId: value })}
-              >
-                <SelectTrigger className={errors.businessId ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Select business" />
-                </SelectTrigger>
-                <SelectContent>
-                  {businesses.map((business) => (
-                    <SelectItem key={business.id} value={business.id}>
-                      {business.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.businessId && (
-                <p className="text-red-500 text-sm mt-1">{errors.businessId}</p>
-              )}
-            </div>
-            
-            <div>
-              <Label htmlFor="numberType">Number Type</Label>
-              <Select
-                value={formData.numberType}
-                onValueChange={(value) => setFormData({ ...formData, numberType: value as BusinessNumberType })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(BusinessNumberType).map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type.replace('_', ' ').toUpperCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="provider">Provider</Label>
-              <Input
-                id="provider"
-                placeholder="e.g., Twilio, RingCentral"
-                value={formData.provider}
-                onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="monthlyCoast">Monthly Cost</Label>
-              <Input
-                id="monthlyCoast"
-                type="number"
-                step="0.01"
-                placeholder="25.00"
-                value={formData.monthlyCoast}
-                onChange={(e) => setFormData({ ...formData, monthlyCoast: e.target.value })}
-              />
-            </div>
-          </div>
-          
+
+        <div className="space-y-4">
+          {/* Phone Number Display */}
           <div>
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              placeholder="Additional notes about this number..."
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            <Label>Phone Number</Label>
+            <Input
+              value={phoneNumber}
+              disabled
+              className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium cursor-not-allowed"
             />
           </div>
-          
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="isPrimary"
-                checked={formData.isPrimary}
-                onCheckedChange={(checked) => setFormData({ ...formData, isPrimary: !!checked })}
-              />
-              <Label htmlFor="isPrimary">Set as primary number</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="isActive"
-                checked={formData.isActive}
-                onCheckedChange={(checked) => setFormData({ ...formData, isActive: !!checked })}
-              />
-              <Label htmlFor="isActive">Active</Label>
-            </div>
+
+          {/* Display Name */}
+          <div>
+            <Label>Display Name</Label>
+            <Input
+              placeholder="e.g., Customer Support Line"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              A friendly name to identify this number in your dashboard
+            </p>
           </div>
-          
+
+          {purchaseError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+              {purchaseError}
+            </div>
+          )}
+
+          {/* Actions */}
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={purchasing}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Adding...' : 'Add Number'}
+            <Button
+              onClick={handlePurchase}
+              disabled={purchasing || !displayName || !phoneNumber}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {purchasing ? 'Purchasing...' : 'Purchase number'}
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   )
 }
-
-// Add React import
-import React from 'react'

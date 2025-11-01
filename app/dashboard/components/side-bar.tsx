@@ -13,12 +13,12 @@ import {
   Phone,
   Menu
 } from 'lucide-react'
-import { AiraLogoLight } from '@/components/ui/dashboard-aira-logo'
+import { SidebarVideoLogo } from '@/components/ui/video-logo'
 
 const navItems = [
   { name: 'Overview', href: '/dashboard/overview', icon: LayoutDashboard },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
-  { name: 'Details', href: '/dashboard/details_new', icon: Building2 },
+  { name: 'Details', href: '/dashboard/details', icon: Building2 },
   { name: 'Numbers', href: '/dashboard/numbers', icon: Phone },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart },
   { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
@@ -52,7 +52,7 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onToggle, isMobile = false }
       {/* Content wrapper */}
       <div className="relative h-full flex flex-col">
         {/* Header section */}
-        <div className="h-14 flex items-center px-4">
+        <div className="h-16 flex items-center px-4">
           {/* Menu toggle button */}
           <button
             onClick={onToggle}
@@ -63,20 +63,22 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onToggle, isMobile = false }
 
           {/* Logo section */}
           {(isOpen || isMobile) && (
-            <div className="flex-grow flex pl-6">
-              <AiraLogoLight />
+            <div className="flex-grow flex justify-start items-center pl-4">
+              <SidebarVideoLogo />
             </div>
           )}
         </div>
 
         {/* Navigation section */}
-        <nav className="flex-1 px-3 py-8">
+        <nav className="flex-1 px-3 py-8 overflow-y-auto">
           {navItems.map((item) => (
             <Link
               key={item.name}
               href={item.href}
-              onClick={isMobile ? onToggle : undefined} // Close sidebar on mobile when clicking nav item
-              className={`flex items-center gap-3 px-2 py-3 text-white dark:text-gray-200 hover:text-white dark:hover:text-white hover:bg-white/10 dark:hover:bg-gray-700/30 rounded-lg transition-all duration-200 border-2 border-transparent hover:border-white dark:hover:border-gray-400 mb-2 ${
+              onClick={(e) => {
+                if (isMobile) onToggle();
+              }}
+              className={`flex items-center gap-3 px-2 py-3 text-white dark:text-gray-200 hover:text-white dark:hover:text-white hover:bg-white/10 dark:hover:bg-gray-700/30 rounded-lg transition-all duration-200 border-2 border-transparent hover:border-white dark:hover:border-gray-400 mb-2 cursor-pointer ${
                 pathname === item.href ? 'text-white bg-white/20 dark:bg-gray-700/40 shadow-lg backdrop-blur-sm' : ''
               }`}
               title={!isOpen && !isMobile ? item.name : undefined}
