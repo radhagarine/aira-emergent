@@ -32,14 +32,17 @@ import { WeekView } from './WeekView';
 import { MonthView } from './MonthView';
 import { Appointment, AppointmentStatus, CalendarView, StatusConfig } from '@/app/dashboard/calendar/type';
 import { getUserTimezone, getTimezoneAbbreviation, formatTimeOnly } from '@/lib/utils/timezone';
+import { TIMEZONE_OPTIONS } from '@/lib/utils/timezones';
 
 interface AppointmentsCalendarProps {
   businessId: string;
+  businessTimezone: string;
   totalCapacity?: number;
 }
 
 const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({
   businessId,
+  businessTimezone,
   totalCapacity = 50
  }) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -47,20 +50,25 @@ const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({
   const [view, setView] = useState<CalendarView>('month');
   const [loading, setLoading] = useState(true);
 
-  // Get user's timezone for display
-  const [userTimezone, setUserTimezone] = useState<string>('UTC');
+  // Timezone for display - defaults to business timezone, user can change for viewing
+  const [selectedTimezone, setSelectedTimezone] = useState<string>(businessTimezone);
   const [timezoneAbbr, setTimezoneAbbr] = useState<string>('');
 
   // Get the appointment service from the service layer
   const appointmentService = useAppointmentService();
 
-  // Initialize timezone on mount
+  // Initialize timezone when business timezone changes
   useEffect(() => {
-    const timezone = getUserTimezone();
-    const abbr = getTimezoneAbbreviation(timezone);
-    setUserTimezone(timezone);
+    setSelectedTimezone(businessTimezone);
+    const abbr = getTimezoneAbbreviation(businessTimezone);
     setTimezoneAbbr(abbr);
-  }, []);
+  }, [businessTimezone]);
+
+  // Update timezone abbreviation when selected timezone changes
+  useEffect(() => {
+    const abbr = getTimezoneAbbreviation(selectedTimezone);
+    setTimezoneAbbr(abbr);
+  }, [selectedTimezone]);
 
   const getDateRange = (): DateRange => {
     const start = new Date(currentDate);
@@ -175,8 +183,8 @@ const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({
   };
 
   const formatTime = (dateString: string): string => {
-    // Format time in user's timezone
-    return formatTimeOnly(dateString, userTimezone, false);
+    // Format time in selected timezone (business timezone by default)
+    return formatTimeOnly(dateString, selectedTimezone, false);
   };
 
   const navigate = (direction: 'prev' | 'next'): void => {
@@ -227,7 +235,8 @@ const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({
       currentDate,
       getStatusConfig,
       formatTime,
-      totalCapacity
+      totalCapacity,
+      selectedTimezone
     };
 
     if (loading) {
@@ -277,7 +286,7 @@ const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({
                 {timezoneAbbr && (
                   <span className="text-xs text-white/70 flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {userTimezone} ({timezoneAbbr})
+                    {selectedTimezone} ({timezoneAbbr})
                   </span>
                 )}
               </div>
@@ -294,6 +303,34 @@ const AppointmentsCalendar: React.FC<AppointmentsCalendarProps> = ({
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Timezone Selector - View Only */}
+            <Select
+              value={selectedTimezone}
+              onValueChange={(value: string) => setSelectedTimezone(value)}
+            >
+              <SelectTrigger className="bg-white/20 border-none text-white hover:bg-white/30 w-60">
+                <SelectValue placeholder="Select timezone">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-sm">
+                      {TIMEZONE_OPTIONS.find(tz => tz.value === selectedTimezone)?.label || selectedTimezone}
+                    </span>
+                  </div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="bg-white text-[#8B0000] max-h-[300px]">
+                {TIMEZONE_OPTIONS.map((tz) => (
+                  <SelectItem key={tz.value} value={tz.value} className="hover:bg-red-50">
+                    <div className="flex flex-col">
+                      <span className="font-medium">{tz.label}</span>
+                      <span className="text-xs text-gray-500">{tz.offset}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* View Selector */}
             <Select
               value={view}
               onValueChange={(value: CalendarView) => setView(value)}

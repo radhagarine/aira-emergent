@@ -5,6 +5,7 @@ import { Clock, Users } from 'lucide-react';
 import { AppointmentStatus, Appointment, StatusConfig } from '@/app/dashboard/calendar/type';
 import { getUtilizationColor } from './calendar-utils';
 import { UtilizationHeader } from './UtilizationHeader';
+import { convertUTCToLocal } from '@/lib/utils/timezone';
 
 interface DayViewProps {
   appointments: Appointment[];
@@ -12,6 +13,7 @@ interface DayViewProps {
   getStatusConfig: (status: AppointmentStatus) => StatusConfig;
   formatTime: (dateString: string) => string;
   totalCapacity?: number;
+  selectedTimezone: string;
 }
 
 export const DayView: React.FC<DayViewProps> = ({
@@ -19,11 +21,13 @@ export const DayView: React.FC<DayViewProps> = ({
   currentDate,
   getStatusConfig,
   formatTime,
-  totalCapacity = 50 // Default capacity if not provided
+  totalCapacity = 50, // Default capacity if not provided
+  selectedTimezone
 }) => {
   const getDayAppointments = (date: Date) => {
     return appointments.filter(apt => {
-      const aptDate = new Date(apt.start_time);
+      // Convert UTC appointment time to selected timezone for comparison
+      const aptDate = convertUTCToLocal(apt.start_time, selectedTimezone);
       return (
         aptDate.getFullYear() === date.getFullYear() &&
         aptDate.getMonth() === date.getMonth() &&
@@ -83,8 +87,9 @@ export const DayView: React.FC<DayViewProps> = ({
 
           {/* Appointments Rendering */}
           {dayAppointments.map((appointment) => {
-            const start = new Date(appointment.start_time);
-            const end = new Date(appointment.end_time);
+            // Convert UTC times to selected timezone for positioning
+            const start = convertUTCToLocal(appointment.start_time, selectedTimezone);
+            const end = convertUTCToLocal(appointment.end_time, selectedTimezone);
             const startMinutes = start.getHours() * 60 + start.getMinutes();
             const duration = (end.getTime() - start.getTime()) / (1000 * 60);
             const statusConfig = getStatusConfig(appointment.status);

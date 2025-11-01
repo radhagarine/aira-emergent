@@ -5,6 +5,7 @@ import { Users } from 'lucide-react';
 import { AppointmentStatus, Appointment, StatusConfig } from '@/app/dashboard/calendar/type';
 import { getUtilizationColor } from './calendar-utils';
 import { UtilizationHeader } from './UtilizationHeader';
+import { convertUTCToLocal } from '@/lib/utils/timezone';
 
 interface MonthViewProps {
   appointments: Appointment[];
@@ -12,13 +13,15 @@ interface MonthViewProps {
   getStatusConfig: (status: AppointmentStatus) => StatusConfig;
   formatTime: (dateString: string) => string;
   totalCapacity?: number;
+  selectedTimezone: string;
 }
 
 export const MonthView: React.FC<MonthViewProps> = ({
   appointments,
   currentDate,
   getStatusConfig,
-  totalCapacity = 50
+  totalCapacity = 50,
+  selectedTimezone
 }) => {
   const getMonthDays = () => {
     const days = [];
@@ -50,7 +53,8 @@ export const MonthView: React.FC<MonthViewProps> = ({
 
   const getDayAppointments = (date: Date) => {
     return appointments.filter(apt => {
-      const aptDate = new Date(apt.start_time);
+      // Convert UTC appointment time to selected timezone for comparison
+      const aptDate = convertUTCToLocal(apt.start_time, selectedTimezone);
       return (
         aptDate.getFullYear() === date.getFullYear() &&
         aptDate.getMonth() === date.getMonth() &&

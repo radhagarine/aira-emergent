@@ -25,10 +25,11 @@ const BusinessCalendarManager: React.FC<BusinessCalendarManagerProps> = ({ busin
   const [businesses, setBusinesses] = useState<BusinessResponse[]>([]);
   const [totalCapacity, setTotalCapacity] = useState<number | undefined>(undefined);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>(businessId);
+  const [businessTimezone, setBusinessTimezone] = useState<string>('America/New_York');
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const router = useRouter();
-  
+
   // Use the business service from service layer
   const businessService = useBusinessService();
 
@@ -64,7 +65,7 @@ const BusinessCalendarManager: React.FC<BusinessCalendarManagerProps> = ({ busin
     setSelectedBusinessId(businessId);
   }, [businessId]);
 
-  // Fetch business capacity
+  // Fetch business capacity and timezone
   useEffect(() => {
     const fetchBusinessCapacity = async () => {
       if (!selectedBusinessId) return;
@@ -72,24 +73,27 @@ const BusinessCalendarManager: React.FC<BusinessCalendarManagerProps> = ({ busin
       try {
         // Get detailed business information including type-specific details
         const businessDetails = await businessService.getBusinessDetails(selectedBusinessId);
-        
+
+        // Extract business timezone
+        setBusinessTimezone(businessDetails.timezone || 'America/New_York');
+
         // Check business type and extract capacity
         if (businessDetails.type === 'restaurant') {
           // Get restaurant details from the response
-          const restaurantDetails = Array.isArray(businessDetails.restaurant_details_v2) 
-            ? businessDetails.restaurant_details_v2[0] 
+          const restaurantDetails = Array.isArray(businessDetails.restaurant_details_v2)
+            ? businessDetails.restaurant_details_v2[0]
             : businessDetails.restaurant_details_v2;
-            
+
           if (restaurantDetails && restaurantDetails.seating_capacity) {
             setTotalCapacity(restaurantDetails.seating_capacity);
           }
         } else if (businessDetails.type === 'retail') {
           // For retail, we could use inventory_size or another metric
           // This depends on your business logic
-          const retailDetails = Array.isArray(businessDetails.retail_details_v2) 
-            ? businessDetails.retail_details_v2[0] 
+          const retailDetails = Array.isArray(businessDetails.retail_details_v2)
+            ? businessDetails.retail_details_v2[0]
             : businessDetails.retail_details_v2;
-            
+
           if (retailDetails && retailDetails.inventory_size) {
             // Convert inventory size to capacity based on business rules
             // This is just an example formula
@@ -176,8 +180,9 @@ const BusinessCalendarManager: React.FC<BusinessCalendarManagerProps> = ({ busin
         </Select>
       </div>
 
-      <AppointmentsCalendar 
+      <AppointmentsCalendar
         businessId={selectedBusinessId}
+        businessTimezone={businessTimezone}
         totalCapacity={totalCapacity}
        />
     </div>

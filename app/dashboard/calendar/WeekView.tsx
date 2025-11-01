@@ -5,6 +5,7 @@ import { Clock, Users } from 'lucide-react';
 import { AppointmentStatus, Appointment, StatusConfig } from '@/app/dashboard/calendar/type';
 import { getUtilizationColor, getStatusColor } from './calendar-utils';
 import { UtilizationHeader } from './UtilizationHeader';
+import { convertUTCToLocal } from '@/lib/utils/timezone';
 
 interface WeekViewProps {
   appointments: Appointment[];
@@ -12,6 +13,7 @@ interface WeekViewProps {
   getStatusConfig: (status: AppointmentStatus) => StatusConfig;
   formatTime: (dateString: string) => string;
   totalCapacity?: number;
+  selectedTimezone: string;
 }
 
 export const WeekView: React.FC<WeekViewProps> = ({
@@ -19,13 +21,14 @@ export const WeekView: React.FC<WeekViewProps> = ({
   currentDate,
   getStatusConfig,
   formatTime,
-  totalCapacity = 50
+  totalCapacity = 50,
+  selectedTimezone
 }) => {
   const getWeekDays = () => {
     const days = [];
     const week = new Date(currentDate);
     week.setDate(week.getDate() - week.getDay());
-    
+
     for (let i = 0; i < 7; i++) {
       const day = new Date(week);
       day.setDate(week.getDate() + i);
@@ -36,7 +39,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
   const getDayAppointments = (date: Date) => {
     return appointments.filter(apt => {
-      const aptDate = new Date(apt.start_time);
+      // Convert UTC appointment time to selected timezone for comparison
+      const aptDate = convertUTCToLocal(apt.start_time, selectedTimezone);
       return (
         aptDate.getFullYear() === date.getFullYear() &&
         aptDate.getMonth() === date.getMonth() &&
@@ -135,8 +139,9 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
                 {/* Appointments */}
                 {dayAppointments.map((appointment) => {
-                  const start = new Date(appointment.start_time);
-                  const end = new Date(appointment.end_time);
+                  // Convert UTC times to selected timezone for positioning
+                  const start = convertUTCToLocal(appointment.start_time, selectedTimezone);
+                  const end = convertUTCToLocal(appointment.end_time, selectedTimezone);
                   const startMinutes = start.getHours() * 60 + start.getMinutes();
                   const duration = (end.getTime() - start.getTime()) / (1000 * 60);
                   const statusColor = getStatusColor(appointment.status);

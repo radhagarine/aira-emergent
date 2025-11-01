@@ -145,6 +145,7 @@ export class BusinessService implements IBusinessService {
         address: data.address || null,
         phone: data.phone || null,
         email: data.email || null,
+        timezone: data.timezone || 'America/New_York',
         profile_image: data.profile_image || null,
         type: businessType
       };
@@ -217,6 +218,7 @@ export class BusinessService implements IBusinessService {
       if (data.address !== undefined) coreUpdateData.address = data.address;
       if (data.phone !== undefined) coreUpdateData.phone = data.phone;
       if (data.email !== undefined) coreUpdateData.email = data.email;
+      if (data.timezone !== undefined) coreUpdateData.timezone = data.timezone;
       if (data.profile_image) coreUpdateData.profile_image = data.profile_image;
 
       // Only proceed with core update if there are fields to update
