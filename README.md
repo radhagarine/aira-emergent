@@ -96,6 +96,9 @@ The application follows a layered architecture:
 # Build the Docker image with no cache (for clean build)
 docker build --no-cache -t aira-platformauth .
 
+# To build with local Docker file
+docker build --no-cache -t aira-platformauth -f Dockerfile-local .
+
 # Run the container, mapping port 3000
 docker run -p 3000:3000 aira-platformauth
 

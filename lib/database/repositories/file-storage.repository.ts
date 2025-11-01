@@ -41,37 +41,53 @@ export class FileStorageRepository implements IFileStorageRepository {
    * Upload file to object storage
    */
   async uploadFile(
-    file: File, 
-    businessId: string, 
+    file: File,
+    businessId: string,
     fileType: BusinessFileType,
     onProgress?: (progress: number) => void
   ): Promise<{ storagePath: string; publicUrl: string }> {
     try {
       // 1. Get current authenticated user
-    /* const { data: { user } } = await this.supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('No authenticated user');
-    }
+      const { data: { user } } = await this.supabase.auth.getUser();
 
-    // 2. Verify business ownership
-    const { data: business, error: businessError } = await this.supabase
-      .from('business_v2')
-      .select('user_id')
-      .eq('id', businessId)
-      .single();
+      if (!user) {
+        throw new DatabaseError(
+          'No authenticated user',
+          'UNAUTHORIZED',
+          'User must be authenticated to upload files'
+        );
+      }
 
-    if (businessError || !business || business.user_id !== user.id) {
-      throw new Error('Unauthorized: Business does not belong to current user');
-    } */
+      // 2. Verify business ownership
+      const { data: business, error: businessError } = await this.supabase
+        .from('business_v2')
+        .select('user_id')
+        .eq('id', businessId)
+        .single();
+
+      if (businessError || !business) {
+        throw new DatabaseError(
+          'Business not found',
+          'NOT_FOUND',
+          `Business ${businessId} does not exist`
+        );
+      }
+
+      if (business.user_id !== user.id) {
+        throw new DatabaseError(
+          'Unauthorized: Business does not belong to current user',
+          'UNAUTHORIZED',
+          'You can only upload files to your own businesses'
+        );
+      }
 
       // Validate file first
       this.validateFile(file);
-  
-      // Generate unique file path
+
+      // Generate unique file path using user_id instead of business_id for better organization
       const fileExt = file.name.split('.').pop();
-      const storagePath = `${businessId}/${fileType}/${Date.now()}.${fileExt}`;
-  
+      const storagePath = `${user.id}/${businessId}/${fileType}/${Date.now()}.${fileExt}`;
+
       console.log(`Attempting upload to path: ${storagePath}`);
       console.log(`Bucket name: ${this.storageBucket}`);
       console.log(`File type: ${file.type}`);

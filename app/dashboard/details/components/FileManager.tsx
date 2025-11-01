@@ -12,8 +12,6 @@ import { useSupabase } from '@/components/providers/supabase-provider';
 interface FileManagerProps {
   businessId: string;
   knowledgeBaseFiles: KnowledgeBaseFile[];
-  csvFile: File | null;
-  setCsvFile: React.Dispatch<React.SetStateAction<File | null>>;
   onFileUpload: (file: File) => Promise<void>;
   onFileRemove: (fileName: string) => Promise<void>;
 }
@@ -21,8 +19,6 @@ interface FileManagerProps {
 const FileManager: React.FC<FileManagerProps> = ({
   businessId,
   knowledgeBaseFiles,
-  csvFile,
-  setCsvFile,
   onFileUpload,
   onFileRemove
 }) => {
@@ -33,7 +29,7 @@ const FileManager: React.FC<FileManagerProps> = ({
   // Debug logging for props
   useEffect(() => {
     // Component mounted successfully
-  }, [businessId, knowledgeBaseFiles, csvFile, supabase]);
+  }, [businessId, knowledgeBaseFiles, supabase]);
 
   // Format file size for display
   const formatFileSize = (bytes: number): string => {
@@ -87,8 +83,8 @@ const FileManager: React.FC<FileManagerProps> = ({
     }
   };
 
-  // Handle CSV file selection
-  const handleCsvFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle CSV file upload (immediate upload like Knowledge Base files)
+  const handleCsvFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -107,7 +103,20 @@ const FileManager: React.FC<FileManagerProps> = ({
       return;
     }
 
-    setCsvFile(file);
+    // Upload immediately instead of storing in state
+    try {
+      toast.message(`Uploading ${file.name}...`);
+      await onFileUpload(file);
+      toast.success(`CSV file ${file.name} uploaded successfully`);
+    } catch (error) {
+      console.error('[FileManager] Error uploading CSV file:', error);
+      toast.error(`Failed to upload ${file.name}`);
+    } finally {
+      // Reset file input
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
   };
 
   return (
@@ -292,74 +301,31 @@ const FileManager: React.FC<FileManagerProps> = ({
               </div>
 
             {/* CSV Upload Section */}
-            {!csvFile ? (
-              <div className="relative">
-                <div className="flex justify-center items-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 hover:border-[#8B0000] transition-all duration-200 bg-gray-50 dark:bg-gray-900/50">
-                  <label className="cursor-pointer w-full">
-                    <input
-                      type="file"
-                      accept=".csv"
-                      className="hidden"
-                      onChange={handleCsvFileSelect}
-                    />
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
-                        <Upload className="h-6 w-6 text-red-600 dark:text-red-400" />
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          <span className="text-red-600 dark:text-red-400 font-semibold">Click to upload</span> or drag and drop
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                          CSV files only (max 10MB)
-                        </p>
-                      </div>
+            <div className="relative">
+              <div className="flex justify-center items-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 hover:border-[#8B0000] transition-all duration-200 bg-gray-50 dark:bg-gray-900/50">
+                <label className="cursor-pointer w-full">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={handleCsvFileUpload}
+                  />
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
+                      <Upload className="h-6 w-6 text-red-600 dark:text-red-400" />
                     </div>
-                  </label>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="group flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="flex-shrink-0 p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm">
-                      <Database className="h-5 w-5 text-[#8B0000]" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {csvFile.name}
+                    <div className="text-center">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <span className="text-red-600 dark:text-red-400 font-semibold">Click to upload</span> or drag and drop
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                        CSV files only (max 10MB) - Uploads immediately
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 mt-1">
-                        <Badge variant="outline" className="text-xs py-0 bg-[#8B0000]/20 text-[#8B0000] border-[#8B0000]/30">
-                          {formatFileSize(csvFile.size)}
-                        </Badge>
-                        <span>•</span>
-                        <span>CSV File</span>
-                      </div>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCsvFile(null)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-[#8B0000]"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex items-start gap-3 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-900 dark:text-green-100 rounded-xl">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  </div>
-                  <div className="text-sm">
-                    <p className="font-medium">CSV file ready for upload</p>
-                    <p className="text-green-700 dark:text-green-300 mt-1">
-                      Click the "Save All Changes" button at the bottom of the page to process your CSV file.
-                    </p>
-                  </div>
-                </div>
+                </label>
               </div>
-            )}
+            </div>
               </CardContent>
             </Card>
           </TabsContent>

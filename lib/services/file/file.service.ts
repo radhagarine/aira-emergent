@@ -128,15 +128,7 @@ export class FileService implements IFileService {
 
       // If we reach here, no file with this name exists, proceed with normal upload
 
-      // Upload file to storage
-      const uploadResult = await this.fileStorageRepository.uploadFile(
-        file,
-        businessId,
-        fileType,
-        onProgress
-      );
-
-      // Create file record in database
+      // Create file record in database (this will handle the storage upload internally)
       const fileRecord = await this.businessFilesRepository.createFile({
         business_id: businessId,
         file_type: fileType,
@@ -153,6 +145,9 @@ export class FileService implements IFileService {
         (typeof fileRecord.metadata === 'string' ?
           JSON.parse(fileRecord.metadata) : fileRecord.metadata) : null;
 
+      // Get URL for the uploaded file
+      const url = this.fileStorageRepository.getPublicUrl(fileRecord.storage_path);
+
       // Invalidate cache for this business's files
       this.cacheManager.clearByPrefix(`files:${businessId}`);
 
@@ -161,7 +156,7 @@ export class FileService implements IFileService {
         name: fileRecord.original_name,
         size: fileRecord.file_size,
         type: fileRecord.mime_type,
-        url: uploadResult.publicUrl,
+        url: url,
         metadata: convertedMetadata,
         uploadDate: fileRecord.created_at
       };

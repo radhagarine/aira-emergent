@@ -52,7 +52,6 @@ export default function BusinessDashboard() {
   
   // File state
   const [knowledgeBaseFiles, setKnowledgeBaseFiles] = useState<any[]>([]);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
   
   // Load businesses on component mount
   useEffect(() => {
@@ -241,17 +240,17 @@ export default function BusinessDashboard() {
           await handleDetailsTabSave(typeDetails);
           saveSuccess = true;
           break;
-          
+
         case 'interaction':
           await handleInteractionTabSave(customerSettings);
           saveSuccess = true;
           break;
-          
+
         case 'files':
-          await handleFileTabSave();
-          saveSuccess = true;
-          break;
-          
+          // Files are uploaded immediately, no save action needed
+          toast.message('Files are uploaded immediately when selected');
+          return;
+
         default:
           console.warn(`[BusinessDashboard] Unknown tab: ${activeTab}`);
           return;
@@ -365,10 +364,7 @@ const handleFileUpload = async (file: File) => {
     } else {
       toast.success(`File ${file.name} uploaded successfully`);
     }
-    
-    // Refresh knowledge base files list to ensure UI is in sync with database
-    refreshKnowledgeBaseFiles();
-    
+
   } catch (error) {
     console.error('[BusinessDashboard] Error uploading file:', error);
     
@@ -437,48 +433,6 @@ const handleFileRemove = async (fileName: string) => {
   }
 };
 
-// Add this specialized method for handling files in the business dashboard
-// This method would be used in the "Save All Changes" button click handler
-const handleFileTabSave = async () => {
-  if (!selectedBusinessId) {
-    console.error('[BusinessDashboard] Cannot save files: No business selected');
-    toast.error('Please select a business first');
-    return;
-  }
-  
-  
-  try {
-    // Handle CSV file upload if present
-    if (csvFile) {
-      
-      // Show upload progress toast
-      toast.message(`Uploading ${csvFile.name}...`);
-      
-      await fileService.uploadConfigFile(selectedBusinessId, csvFile);
-      
-      // Clear CSV file state after successful upload
-      setCsvFile(null);
-      
-      toast.success(`File ${csvFile.name} uploaded successfully`);
-    } else {
-    }
-    
-    // Always refresh the file list to ensure we have the latest data
-    await refreshKnowledgeBaseFiles();
-    
-    return true; // Return success
-  } catch (error) {
-    console.error('[BusinessDashboard] Error handling file tab save:', error);
-    
-    if (error instanceof ServiceError) {
-      toast.error(error.message);
-    } else {
-      toast.error('Failed to save files');
-    }
-    
-    return false; // Return failure
-  }
-};
   
   // Loading state
   if (loading && businesses.length === 0) {
@@ -576,8 +530,6 @@ const handleFileTabSave = async () => {
             <FileManager
               businessId={selectedBusinessId}
               knowledgeBaseFiles={knowledgeBaseFiles}
-              csvFile={csvFile}
-              setCsvFile={setCsvFile}
               onFileUpload={handleFileUpload}
               onFileRemove={handleFileRemove}
             />
@@ -585,21 +537,23 @@ const handleFileTabSave = async () => {
         </Tabs>
       )}
       
-      {/* Global Save Button */}
-      <div className="flex justify-end mt-8">
-        <Button
-          onClick={handleSave}
-          disabled={saving || loading}
-          className="bg-[#8B0000] hover:bg-[#6B0000] text-white px-8 py-2"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : 'Save All Changes'}
-        </Button>
-      </div>
+      {/* Global Save Button - Only show for Details and Customer Interaction tabs */}
+      {activeTab !== 'files' && (
+        <div className="flex justify-end mt-8">
+          <Button
+            onClick={handleSave}
+            disabled={saving || loading}
+            className="bg-[#8B0000] hover:bg-[#6B0000] text-white px-8 py-2"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : 'Save Changes'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
