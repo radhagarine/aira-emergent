@@ -17,7 +17,7 @@ RUN npm ci
 COPY . .
 
 # Copy the .env.local file
-COPY .env.local .env.local
+COPY env.prod .env.local
 
 # Build the Next.js application
 RUN npm run build
